@@ -603,6 +603,18 @@
 			font-size: 15px;
 			font-weight: 600;
 		}
+		/* ===== Canvas Info Badge ===== */
+		.canvas-info {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 10px;
+			background: var(--primary-soft);
+			color: var(--primary);
+			font-size: 11px;
+			font-weight: 600;
+			border-radius: 4px;
+		}
 	</style>
 	<script>
 		function hexToBytes(hex) {for (var bytes = [], c = 0; c < hex.length; c += 2)bytes.push(parseInt(hex.substr(c, 2), 16));return new Uint8Array(bytes);}
@@ -610,6 +622,14 @@
 		function intToHex(intIn, bytes=4) {return intIn.toString(16).padStart(bytes * 2, '0');}
 		const bwrPalette = [[0, 0, 0, 255],[255, 255, 255, 255],[255, 0, 0, 255]]
 		const bwPalette = [[0, 0, 0, 255],[255, 255, 255, 255],]
+
+		// ===== 2.13寸屏幕布局常量 =====
+		const SCREEN_WIDTH = 296;
+		const SCREEN_HEIGHT = 128;
+		const LEFT_MARGIN = 46;  // 左侧留白像素数
+		const CONTENT_START_X = 47; // 内容起始X坐标（46像素之后）
+		const CONTENT_WIDTH = SCREEN_WIDTH - LEFT_MARGIN; // 可用内容宽度 = 250
+
 		function dithering(ctx, width, height, threshold, type) {
   			const bayerThresholdMap = [[  15, 135,  45, 165 ],[ 195,  75, 225, 105 ],[  60, 180,  30, 150 ],[ 240, 120, 210,  90 ]];
   			const lumR = [];
@@ -774,6 +794,38 @@
 		}
 		ctx.putImageData(imageData, 0, 0);
 	}
+	// ===== 绘制左侧留白区域的视觉标记 =====
+	function drawLeftMarginGuide(ctx) {
+		// 在左侧46像素区域画一条浅色分隔线 + 斜线填充图案表示"不可绘制区"
+		ctx.save();
+		// 浅灰背景
+		ctx.fillStyle = '#f1f5f9';
+		ctx.fillRect(0, 0, LEFT_MARGIN, SCREEN_HEIGHT);
+		// 分隔线
+		ctx.strokeStyle = '#cbd5e1';
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.beginPath();
+		ctx.moveTo(LEFT_MARGIN, 0);
+		ctx.lineTo(LEFT_MARGIN, SCREEN_HEIGHT);
+		ctx.stroke();
+		ctx.setLineDash([]);
+		// 左侧标注文字
+		ctx.fillStyle = '#94a3b8';
+		ctx.font = '10px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText('留白', LEFT_MARGIN / 2, SCREEN_HEIGHT / 2 - 6);
+		ctx.fillText('46px', LEFT_MARGIN / 2, SCREEN_HEIGHT / 2 + 10);
+		ctx.restore();
+	}
+	// ===== 清除画布（保留左侧留白区域）=====
+	function clearCanvasKeepMargin(canvas) {
+		const ctx = canvas.getContext('2d');
+		// 只清除内容区域（x >= LEFT_MARGIN），左侧留白区域重新绘制引导标记
+		ctx.fillStyle = 'white';
+		ctx.fillRect(LEFT_MARGIN, 0, CONTENT_WIDTH, SCREEN_HEIGHT);
+		drawLeftMarginGuide(ctx);
+	}
 	</script>
 </head>
 <body>
@@ -832,6 +884,7 @@
 			<div class="card">
 				<div class="card-header">
 					<h3><span class="icon icon-green">🖼️</span> 图片上传</h3>
+					<span class="canvas-info">📐 已适配E31H | 内容区250×128</span>
 				</div>
 				<div class="card-body">
 					<div class="upload-area">
@@ -881,10 +934,10 @@
 						<button class="btn btn-sm" id="update-text" style="display:none">💾 保存文字到画布</button>
 						<button class="btn btn-sm btn-danger" onclick="clear_canvas()" style="margin-left:auto">🗑️ 清屏</button>
 					</div>
-					<!-- 新增固定多行文本输入框，替代乱飘悬浮框 -->
+					<!-- 固定多行文本输入框 -->
 					<div class="text-input-wrap" id="text-wrap">
-						<label>多行文字（左上角逐行绘制）：</label>
-						<textarea id="text-area" placeholder="输入文字，回车换行"></textarea>
+						<label>多行文字：</label>
+						<textarea id="text-area" placeholder="请在此处输入文字"></textarea>
 					</div>
 					<!-- Canvas -->
 					<div class="canvas-container">
@@ -1209,6 +1262,38 @@
 			const date = new Date((unixNow + new Date().getTimezoneOffset() * 60)*1000);
 			return {unixNow, localeTimeString: date.toLocaleTimeString(), year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), week: date.getDay() || 7};
 		}
+
+		// ===== 自动换行文字绘制（核心功能）=====
+		// 将文本按画布宽度自动折行，返回行数组
+		function wrapText(ctx, text, maxWidth) {
+			const lines = [];
+			// 按换行符先分行
+			const paragraphs = text.split('\n');
+			for (const paragraph of paragraphs) {
+				if (paragraph === '') {
+					lines.push('');
+					continue;
+				}
+				// 对每个段落按宽度折行
+				let currentLine = '';
+				for (let i = 0; i < paragraph.length; i++) {
+					const char = paragraph[i];
+					const testLine = currentLine + char;
+					const metrics = ctx.measureText(testLine);
+					if (metrics.width > maxWidth && currentLine !== '') {
+						lines.push(currentLine);
+						currentLine = char;
+					} else {
+						currentLine = testLine;
+					}
+				}
+				if (currentLine !== '') {
+					lines.push(currentLine);
+				}
+			}
+			return lines;
+		}
+
 		async function update_image () {
 			const image_file = document.getElementById('image_file');
 			if (image_file.files.length > 0) {
@@ -1219,8 +1304,37 @@
 				image.src = URL.createObjectURL(file);
 				image.onload = function(event) {
 					URL.revokeObjectURL(this.src);
-					ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
+					// ★ 先清除整个画布为白色
+					ctx.fillStyle = 'white';
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					// ★ 图片只绘制到右侧内容区域 (x=46 到 x=296)
+					const destX = LEFT_MARGIN;
+					const destY = 0;
+					const destW = CONTENT_WIDTH;
+					const destH = SCREEN_HEIGHT;
+					// 使用 cover 模式：保持宽高比，填满内容区域
+					const imgAspect = image.width / image.height;
+					const destAspect = destW / destH;
+					let drawW, drawH, offsetX, offsetY;
+					if (imgAspect > destAspect) {
+						// 图片更宽，以高度为基准
+						drawH = destH;
+						drawW = image.width * (destH / image.height);
+						offsetX = destX + (destW - drawW) / 2;
+						offsetY = destY;
+					} else {
+						// 图片更高，以宽度为基准
+						drawW = destW;
+						drawH = image.height * (destW / image.width);
+						offsetX = destX;
+						offsetY = destY + (destH - drawH) / 2;
+					}
+					ctx.drawImage(image, offsetX, offsetY, drawW, drawH);
+					// 绘制左侧留白引导标记
+					drawLeftMarginGuide(ctx);
+					// 对整张画布做抖动处理
 					convert_dithering();
+					addLog(`图片已渲染到屏幕区域 (x=${LEFT_MARGIN}-${SCREEN_WIDTH}, 宽${CONTENT_WIDTH}px)`);
 				}
 			}
 		}
@@ -1234,9 +1348,8 @@
 		function clear_canvas() {
 			if(confirm('确认清除画布?')) {
 				const canvas = document.getElementById('canvas');
-				const ctx = canvas.getContext("2d");
-				ctx.fillStyle = 'white';
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				clearCanvasKeepMargin(canvas);
+				addLog('画布已清除');
 			}
 		}
 		function convert_dithering() {
@@ -1257,8 +1370,11 @@
 			}, 1000);
 			const canvas = document.getElementById('canvas');
 			const ctx = canvas.getContext("2d");
+			// ★ 初始化画布：白色背景 + 左侧留白标记
 			ctx.fillStyle = 'white';
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			drawLeftMarginGuide(ctx);
+
 			let is_allow_drawing = false;
 			const image_mode = document.getElementById('canvas-mode');
 			const paint_size = document.getElementById('paint-size');
@@ -1291,10 +1407,10 @@
 			paint_color.onchange = () => {}
 			font.onchange = () => {}
 
-			// 保存文字按钮：固定左上角X=10,Y=10分行绘制
+			// ★ 保存文字按钮：从47像素开始绘制，超宽自动换行
 			saveTextBtn.onclick = function () {
-				const textContent = textArea.value.trim();
-				if (!textContent) {
+				const textContent = textArea.value;
+				if (!textContent.trim()) {
 					alert('请在文本框输入文字');
 					return;
 				}
@@ -1302,22 +1418,40 @@
 				const lineHeight = fontSize * 1.2;
 				ctx.font = `bold ${fontSize}px ${font.value}`;
 				ctx.fillStyle = paint_color.value;
-				const lines = textContent.split('\n');
-				let drawY = 10;
-				const startX = 10;
-				for(let line of lines) {
+				ctx.textBaseline = 'top';
+
+				// 计算可用宽度（从47到296 = 249像素）
+				const maxTextWidth = SCREEN_WIDTH - CONTENT_START_X - 2; // 留2px边距
+				const startX = CONTENT_START_X;
+				let drawY = 2; // 顶部留2px
+
+				// 自动换行处理
+				const lines = wrapText(ctx, textContent, maxTextWidth);
+
+				for (let line of lines) {
+					// 防止文字超出屏幕底部
+					if (drawY + fontSize > SCREEN_HEIGHT) {
+						addLog(`⚠️ 文字超出屏幕底部，已截断`);
+						break;
+					}
 					ctx.fillText(line, startX, drawY);
 					drawY += lineHeight;
 				}
-				// ★ 文字绘制后立刻硬性二值化，避免抗锯齿导致水墨屏笔画粗细不一
+
+				// 重新绘制左侧留白标记（文字绘制可能覆盖了）
+				drawLeftMarginGuide(ctx);
+
+				// ★ 文字绘制后立刻硬性二值化
 				binarizeCanvas(canvas);
-				addLog(`已绘制多行文字并二值化，字号${fontSize}`);
+				addLog(`已绘制 ${lines.length} 行文字（自动换行），字号${fontSize}，从x=${CONTENT_START_X}开始`);
 			}
 
-			// 画笔绘制逻辑完全保留不变
+			// ★ 画笔绘制：限制在内容区域内（x >= LEFT_MARGIN）
 			canvas.onmousedown = function(e) {
 				let { x, y } = get_position(canvas, e.clientX, e.clientY);
 				if (image_mode.value === 'paint') {
+					// 限制画笔起始位置不超出内容区域
+					if (x < LEFT_MARGIN) x = LEFT_MARGIN;
 					is_allow_drawing = true;
 					ctx.beginPath();
 					ctx.moveTo(x, y);
@@ -1326,6 +1460,8 @@
 			canvas.onmousemove = (e) => {
 				let { x, y } = get_position(canvas, e.clientX, e.clientY);
 				if (image_mode.value === 'paint' && is_allow_drawing) {
+					// 限制画笔不进入左侧留白区
+					if (x < LEFT_MARGIN) x = LEFT_MARGIN;
 					ctx.lineWidth = paint_size.value;
 					ctx.strokeStyle = paint_color.value;
 					ctx.lineTo(x, y);
@@ -1333,10 +1469,17 @@
 				}
 			}
 			canvas.onmouseup = function() {
-				if (image_mode.value === 'paint') { is_allow_drawing = false; }
+				if (image_mode.value === 'paint') {
+					is_allow_drawing = false;
+					// 重绘左侧标记（可能被画笔覆盖）
+					drawLeftMarginGuide(ctx);
+				}
 			}
 			canvas.onmouseleave = function () {
-				if (image_mode.value === 'paint') is_allow_drawing = false;
+				if (image_mode.value === 'paint') {
+					is_allow_drawing = false;
+					drawLeftMarginGuide(ctx);
+				}
 			}
 		}
 	</script>
