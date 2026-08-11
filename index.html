@@ -907,6 +907,10 @@
 						<label>阈值:</label>
 						<input type="number" max="255" min="0" value="125" id="threshold" style="width:60px;">
 						<button class="btn btn-sm" onclick="update_image()">🔃 重新处理</button>
+							<label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;cursor:pointer;font-size:12px;color:var(--text-secondary);user-select:none;">
+								<input type="checkbox" id="bwr-checkbox" style="cursor:pointer;width:14px;height:14px;">
+								🎨 三色BWR屏幕
+							</label>
 					</div>
 					<!-- Canvas Tool Bar -->
 					<div class="tool-bar">
@@ -1155,11 +1159,16 @@
 			// ★ 上传前强制硬性二值化，确保文字模式下的像素干净黑白
 			binarizeCanvas(canvas);
 			const startTime = new Date().getTime();
+			// ★ 判断是否勾选了三色BWR屏幕
+			const isBWR = document.getElementById('bwr-checkbox').checked;
+			addLog(isBWR ? '✓ 三色BWR屏幕: 已启用（将发送BWR数据）' : '✓ 三色BWR屏幕: 未启用（仅发送黑白数据）');
 			addLog('开始上传图片...');
 			await sendCommand(hexToBytes("0000"));
 			await sendCommand(hexToBytes("020000"));
 			await sendBufferData(bytesToHex(canvas2bytes(canvas)), 'bw');
-			await sendBufferData(bytesToHex(canvas2bytes(canvas, 'bwr')), 'bwr');
+			if (isBWR) {
+				await sendBufferData(bytesToHex(canvas2bytes(canvas, 'bwr')), 'bwr');
+			}
 			await sendCommand(hexToBytes("0101"));
 			addLog(`✅ 刷新完成，耗时${((new Date().getTime() - startTime)/1000).toFixed(1)}s`);
 		}
