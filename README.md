@@ -1,4 +1,4 @@
-重要通知，2026年8月19日起，本仓库不再存储源码，所有已有源码已迁移至https://github.com/Lightning1003/Stellar-M-E31H-ATCPaper单独项目仓库
+重要通知，2026年8月19日起，本仓库不再存储源码，所有已有源码已迁移至https://github.com/Lightning1003/Stellar-M-E31H-ATCPaper 单独项目仓库
 
 您可以访问新地址查看更完整的项目
 
