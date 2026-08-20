@@ -5,3 +5,5 @@
 本仓库依然执行静态托管管理页面，访问地址： https://lightning1003.github.io/index.html 来打开电子价签管理页面
 
 本仓库已接入gitcode和github双平台同步，中国大陆地区可优先选择通过gitcode下载
+
+技术交流邮箱：hm3818044199@163.com
