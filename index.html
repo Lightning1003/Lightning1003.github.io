@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightning1003-项目引导</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --text-color: #333333;
+            --text-light: #7f8c8d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+            font-size: 28px;
+        }
+
+        header p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 16px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+
+        .card p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        .btn {
+            display: inline-block;
+            text-align: center;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        footer {
+            width: 100%;
+            margin-top: 40px;
+            padding: 30px 20px;
+            background-color: #ecf0f1;
+            border-top: 1px solid #dfe4ea;
+            box-sizing: border-box;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-content h3 {
+            margin: 0 0 15px 0;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+
+        .footer-content p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .footer-content code {
+            background: #dfe4ea;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #e74c3c;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>项目发布页</h1>
+            <p>感谢您访问Lightning1003.io项目引导</p>
+        </header>
+
+        <div class="grid">
+            <!-- 1. 墨水屏管理页面 -->
+            <div class="card">
+                <h2>墨水屏管理</h2>
+                <p>进入主控制界面</p>
+                <a href="blecontrol_TLSR8359.html" class="btn">打开墨水屏管理页面</a>
+            </div>
+
+            <!-- 2. 原生ATC图片上传 -->
+            <div class="card">
+                <h2>图片上传</h2>
+                <p>打开原生 ATC 图片上传工具，适配使用原生ATC项目的用户</p>
+                <a href="Image%20upload%20ATC.html" class="btn">打开原生ATC图片上传</a>
+            </div>
+
+            <!-- 3. 蓝牙OTA更新 -->
+            <div class="card">
+                <h2>蓝牙 OTA与ATC控制</h2>
+                <p>进入 ATC-TLSR-Paper BLE Control 页面，通过蓝牙进行固件 OTA 无线更新。或使用此页面管理原生ATC项目价签</p>
+                <a href="ATC_TLSR_PaperBLEcontrol.html" class="btn">ATC管理/蓝牙OTA更新</a>
+            </div>
+
+            <!-- 4. 串口烧录 -->
+            <div class="card">
+                <h2>串口烧录</h2>
+                <p>通过 UART 接口连接设备，进行底层的固件烧录与调试。</p>
+                <a href="uart_flasher.html" class="btn">通过串口烧录</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <h3>说明与更新日志</h3>
+            <p>当前页面为 GitHub Pages 临时过渡欢迎页beta。</p>
+            <p>后续此区域更新正式的 README 说明或版本更新日志</p>
+        </div>
+    </footer>
+</body>
+</html>
