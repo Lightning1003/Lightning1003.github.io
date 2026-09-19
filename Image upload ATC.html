@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATC_TLSR_Paper · BLE Control</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --border: #e8e8e8;
+            --text: #1a1a1a;
+            --text-secondary: #666666;
+            --accent: #1a1a1a;
+            --accent-hover: #333333;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .header a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .header a:hover {
+            color: var(--text);
+            border-bottom-color: var(--text);
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        /* Connection Status */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            transition: var(--transition);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        .status-text {
+            color: var(--text-secondary);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #f5f5f5;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-danger {
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+
+        .btn-danger:hover {
+            background: #fef2f2;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Input */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input {
+            flex: 1;
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            transition: var(--transition);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+        }
+
+        /* Upload Area */
+        .upload-area {
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: #f5f5f5;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: #f0f0f0;
+        }
+
+        .upload-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Preview */
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .preview-container.show {
+            display: block;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .preview-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .preview-canvas-wrapper {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .preview-box {
+            text-align: center;
+        }
+
+        .preview-box canvas {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            image-rendering: pixelated;
+        }
+
+        .preview-box .label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        /* Progress */
+        .progress-container {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Log */
+        .log-container {
+            max-height: 180px;
+            overflow-y: auto;
+            background: #f8f8f8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .log-entry {
+            color: var(--text-secondary);
+        }
+
+        .log-entry .time {
+            color: #aaa;
+            margin-right: 8px;
+        }
+
+        /* Display Settings */
+        .settings-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-item label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .setting-item select,
+        .setting-item input {
+            padding: 8px 12px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        .setting-item select:focus,
+        .setting-item input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--text);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 13px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 20px 12px; }
+            .card { padding: 20px; }
+            .input-group { flex-direction: column; }
+            .input { width: 100%; }
+            .btn-group { width: 100%; }
+            .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>ATC_TLSR_Paper</h1>
+            <p>BLE E-Paper Controller · <a href="https://github.com/atc1441/ATC_TLSR_Paper" target="_blank">Firmware</a></p>
+        </div>
+
+        <!-- Connection Card -->
+        <div class="card">
+            <div class="card-title">Connection</div>
+            <div class="status-bar">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Disconnected</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnConnect" onclick="preConnect()">Connect</button>
+                <button class="btn" id="btnReconnect" onclick="reConnect()" disabled>Reconnect</button>
+                <button class="btn btn-danger" id="btnDisconnect" onclick="disconnectDevice()" disabled>Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Display Settings Card -->
+        <div class="card">
+            <div class="card-title">Display Settings</div>
+            <div class="settings-row">
+                <div class="setting-item">
+                    <label>Width</label>
+                    <input type="number" id="displayWidth" value="250" min="1" max="400">
+                </div>
+                <div class="setting-item">
+                    <label>Height</label>
+                    <input type="number" id="displayHeight" value="122" min="1" max="300">
+                </div>
+                <div class="setting-item">
+                    <label>Dithering</label>
+                    <select id="ditherMode">
+                        <option value="threshold">Threshold</option>
+                        <option value="bayer">Bayer 4x4</option>
+                        <option value="floyd">Floyd-Steinberg</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Invert</label>
+                    <select id="invertMode">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Upload Card -->
+        <div class="card">
+            <div class="card-title">Image Upload</div>
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept="image/*">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Click or drag image here to upload</div>
+                <div class="upload-hint">PNG, JPG, BMP, GIF · Auto-converted to 1-bit for e-paper</div>
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <div class="preview-header">
+                    <span class="preview-label" id="previewLabel">Preview</span>
+                    <button class="btn btn-primary" id="btnSendImage" onclick="sendImageFromCanvas()">Send to E-Paper</button>
+                </div>
+                <div class="preview-canvas-wrapper">
+                    <div class="preview-box">
+                        <canvas id="originalCanvas" width="250" height="122"></canvas>
+                        <div class="label">Original</div>
+                    </div>
+                    <div class="preview-box">
+                        <canvas id="bwCanvas" width="250" height="122"></canvas>
+                        <div class="label">1-Bit Output</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="progressStatus">Ready</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Commands Card -->
+        <div class="card">
+            <div class="card-title">Debug Command</div>
+            <div class="input-group">
+                <input type="text" class="input" id="cmdTXT" value="0055" placeholder="Hex command (e.g. 0055)">
+                <button class="btn btn-primary" onclick="sendcmd(document.getElementById('cmdTXT').value)">Send</button>
+            </div>
+        </div>
+
+        <!-- Log Card -->
+        <div class="card">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Log</span>
+                <button class="btn" style="padding:4px 12px;font-size:12px;" onclick="clearLog()">Clear</button>
+            </div>
+            <div class="log-container" id="log"></div>
+        </div>
+
+        <div class="footer">
+            Web Bluetooth API required · Chrome / Edge recommended
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ============ BLE State ============
+    let bleDevice = null;
+    let gattServer = null;
+    let writeCharacteristic = null;
+    let reconnectTrys = 0;
+    let isConnected = false;
+
+    // ============ Image Upload State ============
+    let currentImageData = null; // hex string for BLE transfer
+    let uploadPart = 0;
+    let uploadStartTime = 0;
+
+    // ============ Service UUIDs ============
+    const SERVICE_UUID = '13187b10-eba9-a3ba-044e-83d3217d9a38';
+    const CHAR_UUID = '4b646063-6264-f3a7-8941-e65356ea82fe';
+
+    // ============ Utility ============
+    function addLog(msg) {
+        const log = document.getElementById('log');
+        const now = new Date();
+        const time = [now.getHours(), now.getMinutes(), now.getSeconds()]
+            .map(n => String(n).padStart(2, '0')).join(':');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="time">${time}</span>${msg}`;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+        // Keep only last 50 entries
+        while (log.children.length > 50) log.removeChild(log.firstChild);
+        console.log(`[${time}] ${msg}`);
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function updateConnectionState(connected, deviceName) {
+        isConnected = connected;
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        const btnConnect = document.getElementById('btnConnect');
+        const btnReconnect = document.getElementById('btnReconnect');
+        const btnDisconnect = document.getElementById('btnDisconnect');
+
+        if (connected) {
+            dot.classList.add('connected');
+            text.textContent = `Connected · ${deviceName || ''}`;
+            btnConnect.textContent = 'Connected';
+            btnConnect.disabled = true;
+            btnReconnect.disabled = false;
+            btnDisconnect.disabled = false;
+        } else {
+            dot.classList.remove('connected');
+            text.textContent = 'Disconnected';
+            btnConnect.textContent = 'Connect';
+            btnConnect.disabled = false;
+            btnReconnect.disabled = true;
+            btnDisconnect.disabled = true;
+        }
+    }
+
+    function hexToBytes(hex) {
+        const bytes = [];
+        for (let c = 0; c < hex.length; c += 2) {
+            bytes.push(parseInt(hex.substr(c, 2), 16));
+        }
+        return new Uint8Array(bytes);
+    }
+
+    function bytesToHex(data) {
+        return new Uint8Array(data).reduce((memo, i) =>
+            memo + ("0" + i.toString(16)).slice(-2), "");
+    }
+
+    // ============ BLE Connection ============
+    function resetVariables() {
+        gattServer = null;
+        writeCharacteristic = null;
+        updateConnectionState(false);
+    }
+
+    function handleError(error) {
+        console.error(error);
+        addLog(`Error: ${error.message || error}`);
+        resetVariables();
+        if (bleDevice == null) return;
+        if (reconnectTrys <= 5) {
+            reconnectTrys++;
+            addLog(`Reconnect attempt ${reconnectTrys}/5...`);
+            setTimeout(() => connect(), 1000);
+        } else {
+            addLog("Failed to connect after 5 attempts");
+            reconnectTrys = 0;
+            showToast("Connection failed");
+        }
+    }
+
+    async function preConnect() {
+        if (isConnected && gattServer && gattServer.connected) {
+            disconnectDevice();
+            return;
+        }
+        try {
+            addLog("Requesting BLE device...");
+            bleDevice = await navigator.bluetooth.requestDevice({
+                optionalServices: [SERVICE_UUID],
+                acceptAllDevices: true
+            });
+            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+            reconnectTrys = 0;
+            connect();
+        } catch (err) {
+            handleError(err);
+        }
+    }
+
+    function onDisconnected() {
+        addLog("Device disconnected");
+        resetVariables();
+    }
+
+    function disconnectDevice() {
+        if (bleDevice && bleDevice.gatt.connected) {
+            bleDevice.gatt.disconnect();
+        }
+        resetVariables();
+        addLog("Disconnected");
+    }
+
+    async function reConnect() {
+        if (bleDevice && bleDevice.gatt.connected) {
+            bleDevice.gatt.disconnect();
+        }
+        resetVariables();
+        addLog("Reconnecting...");
+        reconnectTrys = 0;
+        setTimeout(() => connect(), 300);
+    }
+
+    async function connect() {
+        try {
+            addLog(`Connecting to ${bleDevice.name || 'device'}...`);
+            gattServer = await bleDevice.gatt.connect();
+            addLog("GATT server found");
+            const service = await gattServer.getPrimaryService(SERVICE_UUID);
+            addLog("Service found");
+            writeCharacteristic = await service.getCharacteristic(CHAR_UUID);
+            addLog("Characteristic ready");
+            updateConnectionState(true, bleDevice.name);
+            showToast("Connected!");
+        } catch (err) {
+            handleError(err);
+        }
+    }
+
+    // ============ BLE Send ============
+    async function sendCommand(cmd) {
+        if (!writeCharacteristic) {
+            addLog("Not connected!");
+            return;
+        }
+        try {
+            await writeCharacteristic.writeValue(cmd);
+        } catch (err) {
+            handleError(err);
+        }
+    }
+
+    async function sendcmd(cmdTXT) {
+        const cmd = hexToBytes(cmdTXT.replace(/\s/g, ''));
+        addLog(`Send CMD: ${cmdTXT}`);
+        await sendCommand(cmd);
+    }
+
+    // ============ Image Processing ============
+    function loadImageFromFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                processImage(img);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function processImage(img) {
+        const width = parseInt(document.getElementById('displayWidth').value) || 250;
+        const height = parseInt(document.getElementById('displayHeight').value) || 122;
+        const ditherMode = document.getElementById('ditherMode').value;
+        const invert = document.getElementById('invertMode').value === 'true';
+
+        // Draw original resized
+        const origCanvas = document.getElementById('originalCanvas');
+        const origCtx = origCanvas.getContext('2d');
+        origCanvas.width = width;
+        origCanvas.height = height;
+
+        // Fit image maintaining aspect ratio with letterboxing
+        const imgRatio = img.width / img.height;
+        const canvasRatio = width / height;
+        let drawW, drawH, drawX, drawY;
+        if (imgRatio > canvasRatio) {
+            drawW = width;
+            drawH = width / imgRatio;
+            drawX = 0;
+            drawY = (height - drawH) / 2;
+        } else {
+            drawH = height;
+            drawW = height * imgRatio;
+            drawX = (width - drawW) / 2;
+            drawY = 0;
+        }
+
+        origCtx.fillStyle = '#fff';
+        origCtx.fillRect(0, 0, width, height);
+        origCtx.drawImage(img, drawX, drawY, drawW, drawH);
+
+        // Get pixel data and convert to 1-bit
+        const imageData = origCtx.getImageData(0, 0, width, height);
+        const bwData = convertTo1Bit(imageData, width, height, ditherMode, invert);
+
+        // Draw B&W preview
+        const bwCanvas = document.getElementById('bwCanvas');
+        bwCanvas.width = width;
+        bwCanvas.height = height;
+        const bwCtx = bwCanvas.getContext('2d');
+        const bwImageData = bwCtx.createImageData(width, height);
+
+        for (let i = 0; i < bwData.length; i++) {
+            const v = bwData[i] ? 0 : 255; // 1=black, 0=white (for e-paper, we need to check)
+            bwImageData.data[i * 4] = v;
+            bwImageData.data[i * 4 + 1] = v;
+            bwImageData.data[i * 4 + 2] = v;
+            bwImageData.data[i * 4 + 3] = 255;
+        }
+        bwCtx.putImageData(bwImageData, 0, 0);
+
+        // Convert to hex string for BLE transfer (vertical byte packing, MSB first)
+        // E-paper displays typically use vertical bit layout
+        currentImageData = bitmapToHex(bwData, width, height, invert);
+
+        // Show preview
+        document.getElementById('previewContainer').classList.add('show');
+        document.getElementById('previewLabel').textContent =
+            `Preview · ${width}×${height} · ${Math.ceil(width / 8) * height * 2} bytes`;
+
+        addLog(`Image processed: ${width}×${height}, ${ditherMode} dithering`);
+    }
+
+    function convertTo1Bit(imageData, width, height, mode, invert) {
+        const pixels = imageData.data;
+        const gray = new Float32Array(width * height);
+        const result = new Uint8Array(width * height);
+
+        // Convert to grayscale
+        for (let i = 0; i < width * height; i++) {
+            const r = pixels[i * 4];
+            const g = pixels[i * 4 + 1];
+            const b = pixels[i * 4 + 2];
+            gray[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+
+        if (mode === 'threshold') {
+            for (let i = 0; i < width * height; i++) {
+                result[i] = gray[i] < 128 ? 1 : 0;
+            }
+        } else if (mode === 'bayer') {
+            // Bayer 4x4 matrix
+            const bayer = [
+                [ 0,  8,  2, 10],
+                [12,  4, 14,  6],
+                [ 3, 11,  1,  9],
+                [15,  7, 13,  5]
+            ];
+            const threshold = 16;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = y * width + x;
+                    const t = (bayer[y % 4][x % 4] / threshold) * 255;
+                    result[idx] = gray[idx] < t ? 1 : 0;
+                }
+            }
+        } else if (mode === 'floyd') {
+            // Floyd-Steinberg dithering
+            const buf = new Float32Array(gray);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = y * width + x;
+                    const oldVal = buf[idx];
+                    const newVal = oldVal < 128 ? 0 : 255;
+                    result[idx] = oldVal < 128 ? 1 : 0;
+                    const err = oldVal - newVal;
+
+                    if (x + 1 < width)       buf[idx + 1]         += err * 7 / 16;
+                    if (y + 1 < height) {
+                        if (x > 0)            buf[idx + width - 1] += err * 3 / 16;
+                                             buf[idx + width]     += err * 5 / 16;
+                        if (x + 1 < width)    buf[idx + width + 1] += err * 1 / 16;
+                    }
+                }
+            }
+        }
+
+        if (invert) {
+            for (let i = 0; i < result.length; i++) {
+                result[i] = result[i] ? 0 : 1;
+            }
+        }
+
+        return result;
+    }
+
+    function bitmapToHex(bitData, width, height, invert) {
+        // Pack bits vertically (column-major, MSB first)
+        // Each byte represents 8 vertical pixels
+        const bytesPerCol = Math.ceil(height / 8);
+        const totalBytes = width * bytesPerCol;
+        const hex = [];
+
+        for (let x = 0; x < width; x++) {
+            for (let byteIdx = 0; byteIdx < bytesPerCol; byteIdx++) {
+                let byte = 0;
+                for (let bit = 0; bit < 8; bit++) {
+                    const y = byteIdx * 8 + bit;
+                    if (y < height && bitData[y * width + x]) {
+                        byte |= (1 << (7 - bit)); // MSB first
+                    }
+                }
+                hex.push(byte.toString(16).padStart(2, '0'));
+            }
+        }
+
+        return hex.join('');
+    }
+
+    // ============ Image Upload via BLE ============
+    async function sendImageFromCanvas() {
+        if (!currentImageData) {
+            showToast("Please upload an image first");
+            return;
+        }
+        if (!writeCharacteristic) {
+            showToast("Not connected to device");
+            return;
+        }
+
+        const hex = currentImageData.replace(/(?:\r\n|\r|\n|,|0x| )/g, '');
+        uploadStartTime = new Date().getTime();
+        uploadPart = 0;
+
+        const totalParts = Math.ceil(hex.length / 480);
+        const progressContainer = document.getElementById('progressContainer');
+        progressContainer.classList.add('show');
+        updateProgress(0, totalParts, 0);
+
+        addLog(`Starting image upload: ${hex.length / 2} bytes, ~${totalParts} parts`);
+
+        try {
+            // Init sequence: 0000 then 020000
+            await sendCommand(hexToBytes("0000"));
+            await sendCommand(hexToBytes("020000"));
+
+            // Send in chunks of 480 hex chars (240 bytes) with "03" prefix
+            let offset = 0;
+            while (offset < hex.length) {
+                const chunk = hex.substring(offset, offset + 480);
+                const packet = "03" + chunk;
+                await sendCommand(hexToBytes(packet));
+                offset += 480;
+                uploadPart++;
+                const pct = Math.min(100, Math.round((offset / hex.length) * 100));
+                updateProgress(uploadPart, totalParts, pct);
+            }
+
+            // Final packet
+            await sendCommand(hexToBytes("01"));
+
+            const elapsed = ((new Date().getTime() - uploadStartTime) / 1000).toFixed(1);
+            addLog(`✓ Upload complete in ${elapsed}s`);
+            showToast(`Upload complete (${elapsed}s)`);
+            updateProgress(totalParts, totalParts, 100);
+        } catch (err) {
+            addLog(`Upload failed: ${err.message}`);
+            showToast("Upload failed");
+        }
+    }
+
+    function updateProgress(part, total, pct) {
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressStatus').textContent =
+            `Part ${part}/${total}`;
+        document.getElementById('progressPercent').textContent = pct + '%';
+    }
+
+    // ============ File Upload Handlers ============
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            loadImageFromFile(file);
+            showToast(`Loaded: ${file.name}`);
+        }
+    });
+
+    // Drag & drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            loadImageFromFile(file);
+            showToast(`Loaded: ${file.name}`);
+        }
+    });
+
+    // Settings change → reprocess if image exists
+    document.getElementById('ditherMode').addEventListener('change', reprocessIfExists);
+    document.getElementById('invertMode').addEventListener('change', reprocessIfExists);
+    document.getElementById('displayWidth').addEventListener('change', reprocessIfExists);
+    document.getElementById('displayHeight').addEventListener('change', reprocessIfExists);
+
+    function reprocessIfExists() {
+        if (window._lastImage) {
+            processImage(window._lastImage);
+        }
+    }
+
+    // Override loadImageFromFile to store last image
+    const origLoadImage = loadImageFromFile;
+    loadImageFromFile = function(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                window._lastImage = img;
+                processImage(img);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // ============ Log ============
+    function clearLog() {
+        document.getElementById('log').innerHTML = '';
+        addLog("Log cleared");
+    }
+
+    // ============ Init ============
+    addLog("Ready. Click Connect to pair with your e-paper device.");
+
+    // Check Web Bluetooth support
+    if (!navigator.bluetooth) {
+        addLog("⚠ Web Bluetooth not supported. Use Chrome/Edge on desktop or Android.");
+        showToast("Web Bluetooth not supported");
+    }
+    </script>
+</body>
+</html>
