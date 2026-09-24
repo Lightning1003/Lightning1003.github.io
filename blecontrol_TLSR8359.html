@@ -643,11 +643,11 @@
 		// 不同固件/硬件对"屏幕宽度"和"左侧留白"的定义不同，上传前必须按当前固件裁剪像素。
 		//   Stellar-E31H-ATCPaper : 屏幕 296×128，固件只认 250px 行数据，左侧 46px 由硬件驱动留白
 		//   Stellar-L3N           : 屏幕 296×128，固件认完整 296px，不需要留白
-		//   ATC-Stellar           : 别人项目逻辑，画布即 250px 宽（无留白），直接按 250px 上传
+		//   ATC-Stellar           : 兼容项目逻辑，画布即 250px 宽（无留白），直接按 250px 上传
 		const FIRMWARE_CONFIG = {
-'stellar-e31h': { label: 'Stellar-E31H-ATCPaper', canvasW: 296, canvasH: 128, margin: 46, uploadW: 250, atcLogic: false, color: '#4f6ef7', hint: '默认固件：屏幕 296px，但固件只认 250px 行数据，左侧 46px 为硬件驱动留白，图片将自动裁到 250×128 上传。' },
-'stellar-l3n':   { label: 'Stellar-L3N',           canvasW: 296, canvasH: 128, margin: 0,  uploadW: 296, atcLogic: false, color: '#22c55e', hint: '无留白固件：固件认完整 296px，图片将按 296×128 全屏上传，画布不显示留白标记。' },
-'atc-stellar':   { label: 'ATC-Stellar',           canvasW: 250, canvasH: 128, margin: 0,  uploadW: 250, atcLogic: true,  color: '#f59e0b', hint: '兼容旧项目逻辑：画布即 250×128，图片直接铺满画布后上传，与原始 index.html 行为一致。' },
+'stellar-e31h': { label: 'Stellar-E31H-ATCPaper', canvasW: 296, canvasH: 128, margin: 46, uploadW: 250, atcLogic: false, color: '#4f6ef7', hint: '默认固件：底层 296px，但屏幕只显示 250px 行数据，左侧 46px 为硬件驱动留白，图片将在右侧 250×128 区域上传。' },
+'stellar-l3n':   { label: 'Stellar-L3N',           canvasW: 296, canvasH: 128, margin: 0,  uploadW: 296, atcLogic: false, color: '#22c55e', hint: '无留白固件：屏幕物理 296px，图片将按 296×128 全屏上传。' },
+'atc-stellar':   { label: 'Stellar-ATC',           canvasW: 250, canvasH: 128, margin: 0,  uploadW: 250, atcLogic: true,  color: '#f59e0b', hint: '兼容逻辑：画布即 250×128，图片直接铺满画布后上传。' },
 		};
 		const DEFAULT_FIRMWARE = 'stellar-e31h';
 		let CURRENT_FIRMWARE = DEFAULT_FIRMWARE;
@@ -1404,74 +1404,95 @@
 			drawLeftMarginGuide(ctx);
 		}
 
-		async function update_image () {
-			const image_file = document.getElementById('image_file');
-			if (image_file.files.length > 0) {
-				const file = image_file.files[0];
-				const canvas = document.getElementById("canvas");
-				const ctx = canvas.getContext("2d");
-				const fitMode = document.getElementById('fit-mode').value;
+async function update_image () {
+			if (!image_file.files || image_file.files.length === 0) return;
+			const file = image_file.files[0];
+			const canvas = document.getElementById("canvas");
+			const ctx = canvas.getContext("2d");
+			const fitMode = document.getElementById('fit-mode').value;
+
+			const fr = new FileReader();
+			fr.onload = function (e) {
 				const image = new Image();
-				image.src = URL.createObjectURL(file);
-				image.onload = function(event) {
-				    URL.revokeObjectURL(this.src);
-				    ctx.fillStyle = 'white';
-				    ctx.fillRect(0, 0, canvas.width, canvas.height);
+				image.onload = function () {
+					try {
+						ctx.fillStyle = 'white';
+						ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-				    if (getFirmwareConfig().atcLogic) {
-				        // ===== ATC-Stellar 逻辑（别人项目）：画布即 250px 宽，图片直接铺满，无留白偏移 =====
-				        ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
-				    } else {
-				        // ===== E31H / L3N 逻辑：图片只画到「内容区」=====
-				        const destX = LEFT_MARGIN;
-				        const destY = 0;
-				        const destW = CONTENT_WIDTH;
-				        const destH = SCREEN_HEIGHT;
-				        const imgAspect = image.width / image.height;
-				        const destAspect = destW / destH;
+						// 目标区域
+						const destX = getFirmwareConfig().atcLogic ? 0 : LEFT_MARGIN;
+						const destY = 0;
+						const destW = getFirmwareConfig().atcLogic ? canvas.width : CONTENT_WIDTH;
+						const destH = SCREEN_HEIGHT;
 
-				        let sx = 0, sy = 0, sw = image.width, sh = image.height;
-				        let dx = destX, dy = destY, dw = destW, dh = destH;
+						if (image.width === 0 || image.height === 0) {
+							addLog('图片尺寸异常，无法渲染');
+							return;
+						}
+						const imgAspect = image.width / image.height;
+						const destAspect = destW / destH;
 
-				        if (fitMode === 'stretch') {
-				            dx = destX; dy = destY; dw = destW; dh = destH;
-				        } else if (fitMode === 'cover') {
-				            // 裁切覆盖：取源图中间部分，填满目标区
-				            if (imgAspect > destAspect) {
-				                sh = image.height;
-				                sw = image.height * destAspect;
-				                sx = (image.width - sw) / 2;
-				            } else {
-				                sw = image.width;
-				                sh = image.width / destAspect;
-				                sy = (image.height - sh) / 2;
-				            }
-				            dx = destX; dy = destY; dw = destW; dh = destH;
-				        } else {
-				            // contain 居中留白：完整显示，等比缩放
-				            if (imgAspect > destAspect) {
-				                dw = destW;
-				                dh = destW / imgAspect;
-				                dx = destX;
-				                dy = destY + (destH - dh) / 2;
-				            } else {
-				                dh = destH;
-				                dw = destH * imgAspect;
-				                dx = destX + (destW - dw) / 2;
-				                dy = destY;
-				            }
-				        }
+						let sx = 0, sy = 0, sw = image.width, sh = image.height;
+						let dx = destX, dy = destY, dw = destW, dh = destH;
 
-				        ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
-				    }
+						if (fitMode === 'stretch') {
+							dx = destX; dy = destY; dw = destW; dh = destH;
+						} else if (fitMode === 'cover') {
+							if (imgAspect > destAspect) {
+								sh = image.height;
+								sw = Math.round(image.height * destAspect);
+								sx = Math.round((image.width - sw) / 2);
+							} else {
+								sw = image.width;
+								sh = Math.round(image.width / destAspect);
+								sy = Math.round((image.height - sh) / 2);
+							}
+							sx = Math.max(0, Math.min(sx, image.width - sw));
+							sy = Math.max(0, Math.min(sy, image.height - sh));
+							dx = destX; dy = destY; dw = destW; dh = destH;
+						} else {
+							// contain 居中留白
+							if (imgAspect > destAspect) {
+								dw = destW;
+								dh = Math.round(destW / imgAspect);
+								dx = destX;
+								dy = destY + Math.round((destH - dh) / 2);
+							} else {
+								dh = destH;
+								dw = Math.round(destH * imgAspect);
+								dx = destX + Math.round((destW - dw) / 2);
+								dy = destY;
+							}
+						}
 
-				    drawLeftMarginGuide(ctx);
-				    convert_dithering();
+						// 最终参数校验：确保所有值都是有效数字且在合理范围内
+						sx = Math.max(0, Math.min(sx, image.width - 1));
+						sy = Math.max(0, Math.min(sy, image.height - 1));
+						sw = Math.max(1, Math.min(sw, image.width - sx));
+						sh = Math.max(1, Math.min(sh, image.height - sy));
+						dx = Math.max(0, Math.round(dx));
+						dy = Math.max(0, Math.round(dy));
+						dw = Math.max(1, Math.round(dw));
+						dh = Math.max(1, Math.round(dh));
 
-				    const modeNames = {stretch:'拉伸覆盖', cover:'裁切覆盖', contain:'居中留白'};
-				    addLog(`图片已渲染(${getFirmwareConfig().label}/${modeNames[fitMode]}), 源图${image.width}×${image.height} → 内容区${CONTENT_WIDTH}×${SCREEN_HEIGHT}`);
-				}
-			}
+						ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+						drawLeftMarginGuide(ctx);
+						convert_dithering();
+
+						const modeNames = {stretch:'拉伸覆盖', cover:'裁切覆盖', contain:'居中留白'};
+						const renderW = getFirmwareConfig().atcLogic ? canvas.width : CONTENT_WIDTH;
+						addLog( '图片已渲染(' +getFirmwareConfig().label + '/' +modeNames[fitMode] +'), 源图' + image.width + '×' + image.height +' → 目标区' + renderW + '×' + SCREEN_HEIGHT);
+					} catch (err) {
+						addLog('❌ 图片渲染失败: ' + err.message);
+						console.error(err);
+					}
+				};
+				image.onerror = function () {
+					addLog('❌ 图片加载失败');
+				};
+				image.src = e.target.result;
+			};
+			fr.readAsDataURL(file);
 		}
 
 		// 切换适配方式时，若已选图片则自动重新渲染
