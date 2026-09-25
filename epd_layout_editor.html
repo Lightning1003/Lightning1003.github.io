@@ -2,1113 +2,522 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPD 墨水屏布局编辑器 · 296×128</title>
+<title>墨水屏布局编辑器 v2.2 (修复保存)</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --bg:#0d1117;--panel:#161b22;--panel2:#1c232c;--border:#30363d;
-  --accent:#58a6ff;--accent2:#e94560;--text:#c9d1d9;--muted:#8b949e;
-  --green:#3fb950;--yellow:#d29922;--red:#f85149;
-}
-body{font-family:-apple-system,'Segoe UI','Noto Sans CJK SC',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:13px;}
-
-/* ===== 顶部工具栏 ===== */
-.toolbar{background:var(--panel);padding:8px 12px;display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.toolbar .group{display:flex;gap:4px;align-items:center;padding:0 4px;border-right:1px solid var(--border);}
-.toolbar .group:last-child{border-right:none;}
-.toolbar button{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;transition:all .12s;white-space:nowrap;}
-.toolbar button:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
-.toolbar button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.toolbar select,.toolbar input{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px;font-size:12px;}
-.toolbar label{font-size:11px;color:var(--muted);}
-.spacer{flex:1;}
-
-/* ===== 主体三栏 ===== */
-.main{flex:1;display:flex;overflow:hidden;}
-.sidebar{width:210px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;}
-.sidebar h3{padding:10px 12px 6px;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
-.element-list{flex:1;overflow-y:auto;padding:0 8px 8px;}
-.element-item{padding:7px 9px;margin:3px 0;background:var(--panel2);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;display:flex;justify-content:space-between;align-items:center;transition:all .1s;}
-.element-item:hover{border-color:var(--accent);}
-.element-item.selected{border-color:var(--accent);background:rgba(88,166,255,.12);}
-.element-item .badge{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--border);color:var(--muted);flex-shrink:0;}
-.element-item .badge.text{background:rgba(88,166,255,.2);color:var(--accent);}
-.element-item .badge.rect{background:rgba(63,185,80,.2);color:var(--green);}
-.element-item .badge.line{background:rgba(210,153,34,.2);color:var(--yellow);}
-.element-item .del{color:var(--muted);cursor:pointer;padding:0 4px;font-size:14px;line-height:1;flex-shrink:0;}
-.element-item .del:hover{color:var(--red);}
-.element-item .label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:6px;}
-
-/* ===== 画布 ===== */
-.canvas-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#05080c;position:relative;overflow:auto;padding:20px;}
-.canvas-container{position:relative;box-shadow:0 0 0 1px var(--border),0 8px 32px rgba(0,0,0,.6);}
-canvas#epd{image-rendering:pixelated;cursor:crosshair;display:block;}
-canvas#grid{position:absolute;top:0;left:0;pointer-events:none;}
-.canvas-info{position:absolute;top:-22px;left:0;font-size:10px;color:var(--muted);}
-.coord-hud{position:absolute;bottom:-24px;left:0;font-size:10px;color:var(--green);font-family:monospace;}
-
-/* ===== 属性面板 ===== */
-.props{width:290px;background:var(--panel);border-left:1px solid var(--border);padding:12px;overflow-y:auto;}
-.props h3{padding:0 0 8px;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);margin-bottom:10px;}
-.prop-group{margin-bottom:10px;}
-.prop-group>label{display:block;font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;}
-.prop-group input,.prop-group select,.prop-group textarea{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 8px;border-radius:4px;font-size:12px;font-family:inherit;}
-.prop-group textarea{resize:vertical;min-height:56px;font-family:'SF Mono',Consolas,monospace;font-size:11px;}
-.prop-row{display:flex;gap:6px;}
-.prop-row .prop-group{flex:1;}
-.prop-group input[type=checkbox]{width:auto;margin-right:5px;vertical-align:middle;}
-.hint{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5;}
-.hint code{background:var(--panel2);padding:1px 4px;border-radius:3px;font-family:monospace;color:var(--accent);}
-.color-toggle{display:flex;gap:8px;}
-.color-toggle label{display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:4px 8px;border-radius:4px;border:1px solid var(--border);flex:1;justify-content:center;}
-.color-toggle input:checked+span{font-weight:600;}
-.color-toggle label:has(input:checked){border-color:var(--accent);background:rgba(88,166,255,.1);}
-
-/* 变量绑定区 */
-.var-list{border:1px solid var(--border);border-radius:5px;padding:6px;background:var(--bg);max-height:180px;overflow-y:auto;}
-.var-row{display:flex;gap:4px;align-items:center;margin-bottom:4px;}
-.var-row .idx{font-size:10px;color:var(--muted);width:22px;text-align:center;flex-shrink:0;font-family:monospace;}
-.var-row input{flex:1;font-family:'SF Mono',Consolas,monospace;font-size:11px;}
-.var-row .vdel{cursor:pointer;color:var(--muted);font-size:12px;padding:2px 5px;flex-shrink:0;}
-.var-row .vdel:hover{color:var(--red);}
-.add-var{font-size:11px;padding:4px 8px;background:var(--panel2);border:1px dashed var(--border);border-radius:4px;cursor:pointer;color:var(--muted);width:100%;margin-top:4px;}
-.add-var:hover{border-color:var(--accent);color:var(--accent);}
-.preset-bar{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;}
-.preset-bar button{font-size:9px;padding:2px 6px;background:var(--panel2);border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;font-family:monospace;}
-.preset-bar button:hover{color:var(--accent);border-color:var(--accent);}
-
-/* ===== 代码面板 ===== */
-.code-panel{height:220px;background:#0a0d12;border-top:1px solid var(--border);display:flex;flex-direction:column;}
-.code-panel .head{padding:8px 12px;font-size:11px;color:var(--accent);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:1.5px;}
-.code-panel .head .actions{display:flex;gap:6px;}
-.code-panel .head button{font-size:11px;padding:3px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;}
-.code-panel .head button:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
-.code-panel pre{flex:1;margin:0;padding:10px 12px;overflow:auto;font-family:'SF Mono',Consolas,monospace;font-size:11px;line-height:1.6;color:#a5d6ff;white-space:pre;}
-.code-panel pre .cmt{color:#6e7681;}
-
-/* scrollbar */
-::-webkit-scrollbar{width:7px;height:7px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
-::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Microsoft YaHei', sans-serif; background:#1a1a2e; color:#eee; height:100vh; display:flex; flex-direction:column; }
+.toolbar { background:#16213e; padding:8px 16px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #0f3460; flex-shrink:0; }
+.toolbar button { background:#0f3460; color:#fff; border:1px solid #e94560; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:13px; }
+.toolbar button:hover { background:#e94560; }
+.toolbar .sep { width:1px; height:24px; background:#0f3460; margin:0 4px; }
+.toolbar label { font-size:12px; color:#aaa; }
+.toolbar select { background:#0f3460; color:#fff; border:1px solid #e94560; padding:3px 8px; border-radius:3px; font-size:12px; }
+.main { display:flex; flex:1; overflow:hidden; }
+.canvas-panel { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0a0a1a; overflow:auto; }
+.canvas-wrap { position:relative; }
+canvas#epd { background:#000; image-rendering:pixelated; box-shadow:0 0 20px rgba(0,255,0,0.1); }
+.props-panel { width:320px; background:#16213e; border-left:1px solid #0f3460; padding:12px; overflow-y:auto; flex-shrink:0; }
+.props-panel h3 { color:#e94560; margin-bottom:10px; font-size:14px; }
+.prop-row { margin-bottom:10px; }
+.prop-row label { display:block; font-size:11px; color:#aaa; margin-bottom:3px; }
+.prop-row input, .prop-row select, .prop-row textarea { width:100%; background:#0f3460; color:#fff; border:1px solid #333; padding:5px 8px; border-radius:3px; font-size:12px; font-family:monospace; }
+.prop-row textarea { resize:vertical; min-height:50px; }
+.prop-row .hint { font-size:10px; color:#666; margin-top:2px; }
+.element-list { width:200px; background:#0a0a1a; border-right:1px solid #0f3460; padding:8px; overflow-y:auto; flex-shrink:0; }
+.element-list h3 { color:#e94560; margin-bottom:8px; font-size:13px; }
+.el-item { padding:6px 8px; margin-bottom:4px; background:#16213e; border-radius:3px; cursor:pointer; font-size:11px; display:flex; justify-content:space-between; align-items:center; }
+.el-item:hover { background:#0f3460; }
+.el-item.selected { background:#e94560; color:#fff; }
+.el-item .el-del { background:#900; color:#fff; border:none; padding:1px 5px; border-radius:2px; cursor:pointer; font-size:10px; }
+.el-item .el-del:hover { background:#f00; }
+.code-panel { height:200px; background:#0a0a1a; border-top:1px solid #0f3460; display:flex; flex-direction:column; }
+.code-panel h3 { color:#e94560; padding:8px 16px 4px; font-size:13px; flex-shrink:0; }
+.code-panel pre { flex:1; overflow:auto; padding:8px 16px; font-size:11px; color:#0f0; background:#000; margin:0; white-space:pre-wrap; word-break:break-all; }
+.var-row { display:flex; gap:4px; margin-bottom:4px; align-items:center; }
+.var-row input { flex:1; }
+.var-row .var-del { background:#900; color:#fff; border:none; padding:2px 6px; border-radius:2px; cursor:pointer; font-size:10px; flex-shrink:0; }
+.var-row .var-del:hover { background:#f00; }
+.add-var-btn { background:#0a4; color:#fff; border:1px solid #0c6; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:10px; margin-top:4px; }
+.add-var-btn:hover { background:#0c6; }
 </style>
 </head>
 <body>
 
-<!-- 工具栏 -->
 <div class="toolbar">
-  <div class="group">
-    <button onclick="addElement('text')">📝 文本</button>
-    <button onclick="addElement('rect')">▭ 矩形</button>
-    <button onclick="addElement('line')">╱ 线条</button>
-  </div>
-  <div class="group">
-    <label>默认字体:</label>
-    <select id="fontSel" onchange="updateProps()">
-      <option value="Dialog_plain_16">Dialog_plain_16 (16px EN)</option>
-      <option value="Dialog_plain_16_zh">Dialog_plain_16_zh (16px CN)</option>
-      <option value="DSEG14_Classic_Mini_Regular_40">DSEG14_40 (40px 时钟)</option>
-      <option value="Special_Elite_Regular_30">Special_Elite_30 (30px)</option>
-    </select>
-  </div>
-  <div class="group">
-    <label>吸附:</label>
-    <select id="snapSel" onchange="drawGrid()">
-      <option value="1">1px</option>
-      <option value="2">2px</option>
-      <option value="4" selected>4px</option>
-      <option value="8">8px</option>
-      <option value="0">关</option>
-    </select>
-  </div>
-  <div class="group">
-    <button onclick="exportC()">📋 导出C代码</button>
-    <button onclick="saveJSON()">💾 保存JSON</button>
-    <button onclick="loadJSON()">📂 加载JSON</button>
-    <button onclick="clearAll()">🗑 清空</button>
-  </div>
+  <button onclick="addText()">+ 文字</button>
+  <button onclick="addRect()">+ 矩形</button>
+  <button onclick="addLine()">+ 线条</button>
+  <span class="sep"></span>
+  <label>网格:</label>
+  <select id="gridSize" onchange="drawCanvas()">
+    <option value="1">1px</option>
+    <option value="2">2px</option>
+    <option value="4" selected>4px</option>
+    <option value="8">8px</option>
+  </select>
+  <span class="sep"></span>
+  <button onclick="generateCode()">生成代码</button>
+  <button onclick="saveJSON()">保存JSON</button>
+  <button onclick="loadJSON()">加载JSON</button>
+  <button onclick="clearAll()">清空</button>
 </div>
 
-<!-- 主体 -->
 <div class="main">
-  <!-- 左侧元素列表 -->
-  <div class="sidebar">
+  <div class="element-list">
     <h3>元素列表</h3>
-    <div class="element-list" id="elementList"></div>
+    <div id="elList"></div>
   </div>
-
-  <!-- 画布 -->
-  <div class="canvas-wrap">
-    <div class="canvas-container">
+  <div class="canvas-panel">
+    <div class="canvas-wrap">
       <canvas id="epd" width="296" height="128"></canvas>
-      <canvas id="grid" width="296" height="128"></canvas>
     </div>
-    <div class="coord-hud" id="coordHud">x:0 y:0</div>
   </div>
-
-  <!-- 右侧属性 -->
-  <div class="props">
-    <div id="propsPanel">
-      <h3>属性</h3>
-      <p style="color:var(--muted);font-size:12px;">在画布上选中或添加一个元素以编辑</p>
-    </div>
+  <div class="props-panel">
+    <h3>属性</h3>
+    <div id="propsArea"><p style="color:#666;font-size:12px;">点击画布上的元素或"+"添加新元素</p></div>
   </div>
 </div>
 
-<!-- 底部代码输出 -->
 <div class="code-panel">
-  <div class="head">
-    <span>生成的 C 代码 (仅调用部分)</span>
-    <div class="actions">
-      <button onclick="copyCode()">复制全部</button>
-      <button onclick="exportC()">导出文件</button>
-    </div>
-  </div>
-  <pre id="codeOutput"></pre>
+  <h3>生成代码</h3>
+  <pre id="codeOut"></pre>
 </div>
 
 <script>
-/* ============================================================
-   字体数据 — 从 font16.h / font16zh.h / font60.h / font30.h 解析
-   ============================================================ */
-const Fonts = {};
+// ============================================================
+// 字体 Glyph 数据
+// ============================================================
+const FONT16_GLYPHS = [
+  {w:1,h:1,xAdv:6,xOff:0,yOff:0},{w:2,h:12,xAdv:7,xOff:2,yOff:-12},{w:5,h:4,xAdv:7,xOff:1,yOff:-12},
+  {w:12,h:11,xAdv:14,xOff:1,yOff:-11},{w:8,h:14,xAdv:11,xOff:2,yOff:-12},{w:14,h:12,xAdv:16,xOff:1,yOff:-12},
+  {w:12,h:12,xAdv:13,xOff:1,yOff:-12},{w:2,h:4,xAdv:4,xOff:1,yOff:-12},{w:5,h:14,xAdv:7,xOff:1,yOff:-12},
+  {w:5,h:14,xAdv:7,xOff:1,yOff:-12},{w:8,h:8,xAdv:9,xOff:1,yOff:-12},{w:10,h:9,xAdv:14,xOff:2,yOff:-9},
+  {w:3,h:4,xAdv:6,xOff:1,yOff:-2},{w:5,h:1,xAdv:7,xOff:1,yOff:-5},{w:2,h:2,xAdv:6,xOff:2,yOff:-2},
+  {w:6,h:13,xAdv:6,xOff:0,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:8,h:12,xAdv:11,xOff:2,yOff:-12},
+  {w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:10,h:12,xAdv:11,xOff:1,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},
+  {w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},
+  {w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:2,h:8,xAdv:6,xOff:2,yOff:-8},
+  {w:3,h:10,xAdv:6,xOff:1,yOff:-8},{w:11,h:9,xAdv:14,xOff:2,yOff:-9},{w:11,h:4,xAdv:14,xOff:2,yOff:-7},
+  {w:11,h:9,xAdv:14,xOff:2,yOff:-9},{w:7,h:12,xAdv:10,xOff:1,yOff:-12},{w:15,h:14,xAdv:17,xOff:1,yOff:-12},
+  {w:12,h:12,xAdv:12,xOff:0,yOff:-12},{w:10,h:12,xAdv:12,xOff:1,yOff:-12},{w:10,h:12,xAdv:12,xOff:1,yOff:-12},
+  {w:11,h:12,xAdv:13,xOff:1,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:8,h:12,xAdv:10,xOff:1,yOff:-12},
+  {w:11,h:12,xAdv:13,xOff:1,yOff:-12},{w:11,h:12,xAdv:13,xOff:1,yOff:-12},{w:2,h:12,xAdv:6,xOff:2,yOff:-12},
+  {w:4,h:15,xAdv:6,xOff:0,yOff:-12},{w:10,h:12,xAdv:11,xOff:1,yOff:-12},{w:8,h:12,xAdv:10,xOff:1,yOff:-12},
+  {w:12,h:12,xAdv:14,xOff:1,yOff:-12},{w:11,h:12,xAdv:13,xOff:1,yOff:-12},{w:11,h:12,xAdv:13,xOff:1,yOff:-12},
+  {w:12,h:12,xAdv:14,xOff:1,yOff:-12},{w:10,h:12,xAdv:12,xOff:1,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},
+  {w:10,h:12,xAdv:10,xOff:0,yOff:-12},{w:9,h:12,xAdv:11,xOff:1,yOff:-12},{w:14,h:9,xAdv:16,xOff:1,yOff:-9},
+  {w:9,h:9,xAdv:11,xOff:1,yOff:-9},{w:9,h:9,xAdv:11,xOff:1,yOff:-9},{w:9,h:12,xAdv:11,xOff:1,yOff:-9},
+  {w:9,h:12,xAdv:11,xOff:1,yOff:-9},{w:9,h:12,xAdv:11,xOff:1,yOff:-9},{w:6,h:9,xAdv:8,xOff:1,yOff:-9},
+  {w:8,h:9,xAdv:10,xOff:1,yOff:-9},{w:6,h:11,xAdv:7,xOff:0,yOff:-11},{w:9,h:9,xAdv:11,xOff:1,yOff:-9},
+  {w:11,h:9,xAdv:10,xOff:0,yOff:-9},{w:14,h:9,xAdv:14,xOff:0,yOff:-9},{w:9,h:9,xAdv:11,xOff:1,yOff:-9},
+  {w:9,h:9,xAdv:11,xOff:1,yOff:-9},{w:10,h:12,xAdv:10,xOff:0,yOff:-9},{w:9,h:12,xAdv:10,xOff:1,yOff:-12},
+  {w:6,h:15,xAdv:11,xOff:2,yOff:-12},{w:9,h:12,xAdv:10,xOff:1,yOff:-12},{w:14,h:9,xAdv:16,xOff:1,yOff:-9},
+  {w:9,h:9,xAdv:11,xOff:1,yOff:-9},{w:9,h:9,xAdv:11,xOff:1,yOff:-9},{w:8,h:9,xAdv:10,xOff:1,yOff:-9},
+  {w:6,h:16,xAdv:6,xOff:2,yOff:-12}
+];
 
-// --- Dialog_plain_16 ---
-// font16.h: GFXglyph 格式 [bitmapOffset, width, height, xAdvance, xOffset, yOffset]
-// yOffset 为负数: 基线坐标系, 实际顶部 = y + yOffset
-Fonts.Dialog_plain_16 = {
-  name: 'Dialog_plain_16',
-  yAdvance: 19,
-  glyphs: [
-    /* 0x20 ' ' */ [0,1,1,6,0,0],
-    /* 0x21 '!' */ [1,2,12,7,2,-12],
-    /* 0x22 '"' */ [4,5,4,7,1,-12],
-    /* 0x23 '#' */ [7,12,11,14,1,-11],
-    /* 0x24 '$' */ [24,8,14,11,2,-12],
-    /* 0x25 '%' */ [38,14,12,16,1,-12],
-    /* 0x26 '&' */ [59,12,12,13,1,-12],
-    /* 0x27 ''' */ [77,2,4,4,1,-12],
-    /* 0x28 '(' */ [78,5,14,7,1,-12],
-    /* 0x29 ')' */ [87,5,14,7,1,-12],
-    /* 0x2A '*' */ [96,8,8,9,1,-12],
-    /* 0x2B '+' */ [104,10,9,14,2,-9],
-    /* 0x2C ',' */ [116,3,4,6,1,-2],
-    /* 0x2D '-' */ [118,5,1,7,1,-5],
-    /* 0x2E '.' */ [119,2,2,6,2,-2],
-    /* 0x2F '/' */ [120,6,13,6,0,-12],
-    /* 0x30 '0' */ [130,9,12,11,1,-12],
-    /* 0x31 '1' */ [144,8,12,11,2,-12],
-    /* 0x32 '2' */ [156,8,12,11,1,-12],
-    /* 0x33 '3' */ [168,9,12,11,1,-12],
-    /* 0x34 '4' */ [182,10,12,11,1,-12],
-    /* 0x35 '5' */ [197,9,12,11,1,-12],
-    /* 0x36 '6' */ [211,9,12,11,1,-12],
-    /* 0x37 '7' */ [225,9,12,11,1,-12],
-    /* 0x38 '8' */ [239,9,12,11,1,-12],
-    /* 0x39 '9' */ [253,9,12,11,1,-12],
-    /* 0x3A ':' */ [267,2,8,6,2,-8],
-    /* 0x3B ';' */ [269,3,10,6,1,-8],
-    /* 0x3C '<' */ [273,11,9,14,2,-9],
-    /* 0x3D '=' */ [286,11,4,14,2,-7],
-    /* 0x3E '>' */ [292,11,9,14,2,-9],
-    /* 0x3F '?' */ [305,7,12,10,1,-12],
-    /* 0x40 '@' */ [316,15,14,17,1,-12],
-    /* 0x41 'A' */ [343,12,12,12,0,-12],
-    /* 0x42 'B' */ [361,10,12,12,1,-12],
-    /* 0x43 'C' */ [376,10,12,12,1,-12],
-    /* 0x44 'D' */ [391,11,12,13,1,-12],
-    /* 0x45 'E' */ [408,9,12,11,1,-12],
-    /* 0x46 'F' */ [422,8,12,10,1,-12],
-    /* 0x47 'G' */ [434,11,12,13,1,-12],
-    /* 0x48 'H' */ [451,11,12,13,1,-12],
-    /* 0x49 'I' */ [468,2,12,6,2,-12],
-    /* 0x4A 'J' */ [471,4,15,6,0,-12],
-    /* 0x4B 'K' */ [479,10,12,11,1,-12],
-    /* 0x4C 'L' */ [494,8,12,10,1,-12],
-    /* 0x4D 'M' */ [506,12,12,14,1,-12],
-    /* 0x4E 'N' */ [524,11,12,13,1,-12],
-    /* 0x4F 'O' */ [541,12,12,14,1,-12],
-    /* 0x50 'P' */ [559,9,12,11,1,-12],
-    /* 0x51 'Q' */ [573,12,14,14,1,-12],
-    /* 0x52 'R' */ [594,11,12,12,1,-12],
-    /* 0x53 'S' */ [611,9,12,11,1,-12],
-    /* 0x54 'T' */ [625,10,12,10,0,-12],
-    /* 0x55 'U' */ [640,11,12,13,1,-12],
-    /* 0x56 'V' */ [657,12,12,12,0,-12],
-    /* 0x57 'W' */ [675,16,12,18,1,-12],
-    /* 0x58 'X' */ [699,10,12,12,1,-12],
-    /* 0x59 'Y' */ [714,10,12,10,0,-12],
-    /* 0x5A 'Z' */ [729,11,12,13,1,-12],
-    /* 0x5B '[' */ [746,4,14,7,1,-12],
-    /* 0x5C '\' */ [753,6,13,6,0,-12],
-    /* 0x5D ']' */ [763,4,14,7,2,-12],
-    /* 0x5E '^' */ [770,11,4,14,2,-12],
-    /* 0x5F '_' */ [776,9,1,9,0,3],
-    /* 0x60 '`' */ [778,5,3,9,1,-13],
-    /* 0x61 'a' */ [780,8,9,10,1,-9],
-    /* 0x62 'b' */ [789,9,12,11,1,-12],
-    /* 0x63 'c' */ [803,8,9,10,1,-9],
-    /* 0x64 'd' */ [812,9,12,11,1,-12],
-    /* 0x65 'e' */ [826,8,9,10,1,-9],
-    /* 0x66 'f' */ [835,6,12,7,1,-12],
-    /* 0x67 'g' */ [844,9,12,11,1,-9],
-    /* 0x68 'h' */ [858,9,12,11,1,-12],
-    /* 0x69 'i' */ [872,2,12,4,1,-12],
-    /* 0x6A 'j' */ [875,4,15,4,-1,-12],
-    /* 0x6B 'k' */ [883,9,12,10,1,-12],
-    /* 0x6C 'l' */ [897,2,12,4,1,-12],
-    /* 0x6D 'm' */ [900,14,9,16,1,-9],
-    /* 0x6E 'n' */ [916,9,9,11,1,-9],
-    /* 0x6F 'o' */ [927,9,9,11,1,-9],
-    /* 0x70 'p' */ [938,9,12,11,1,-9],
-    /* 0x71 'q' */ [952,9,12,11,1,-9],
-    /* 0x72 'r' */ [966,6,9,8,1,-9],
-    /* 0x73 's' */ [973,8,9,10,1,-9],
-    /* 0x74 't' */ [982,6,11,7,0,-11],
-    /* 0x75 'u' */ [991,9,9,11,1,-9],
-    /* 0x76 'v' */ [1002,11,9,10,0,-9],
-    /* 0x77 'w' */ [1015,14,9,14,0,-9],
-    /* 0x78 'x' */ [1031,9,9,11,1,-9],
-    /* 0x79 'y' */ [1042,10,12,10,0,-9],
-    /* 0x7A 'z' */ [1057,8,9,10,1,-9],
-    /* 0x7B '{' */ [1066,6,15,11,2,-12],
-    /* 0x7C '|' */ [1078,2,16,6,2,-12],
-    /* 0x7D '}' */ [1082,6,15,11,2,-12]
-  ],
-  charWidth: function(ch){
-    const code = ch.charCodeAt(0);
-    if (code >= 0x20 && code <= 0x7E) {
-      const g = this.glyphs[code - 0x20];
-      return g ? g[3] : 6; // xAdvance
-    }
-    return 6;
-  },
-  charHeight: function(){ return 16; },
-  charTopOffset: function(ch){
-    const code = ch.charCodeAt(0);
-    if (code >= 0x20 && code <= 0x7E) {
-      const g = this.glyphs[code - 0x20];
-      return g ? g[5] : 0; // yOffset (负数)
-    }
-    return 0;
-  }
-};
+const FONT16ZH_GLYPHS = [];
+for(let i=0;i<41;i++) FONT16ZH_GLYPHS.push({w:16,h:16,xAdv:18,xOff:16,yOff:-16});
 
-// --- Dialog_plain_16_zh ---
-// font16zh.h: 41 个 GB2312 汉字, 每个 16x16
-// glyph: [bitmapOffset, width, height, xAdvance, xOffset, yOffset]
-// 注意: xOffset=16, yOffset=-16 → 实际顶部 = y + (-16) = y - 16
-Fonts.Dialog_plain_16_zh = {
-  name: 'Dialog_plain_16_zh',
-  yAdvance: 19,
-  chars: {
-    '零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,
-    '十':10,'年':11,'月':12,'日':13,'时':14,'分':15,'秒':16,'天':17,'已':18,'连':19,
-    '接':20,'断':21,'开':22,'蓝':23,'牙':24,'星':25,'期':26,'电':27,'量':28,'高':29,
-    '低':30,'大':31,'小':32,'早':33,'点':34,'休':35,'息':36,'记':37,'得':38,'喝':39,'水':40
-  },
-  charWidth: function(ch){ return 18; }, // 16px + 2px spacing
-  charHeight: function(){ return 16; },
-  charTopOffset: function(){ return -16; }
-};
+const DSEG14_GLYPHS = [];
+for(let i=0;i<95;i++) {
+  if(i===0) DSEG14_GLYPHS.push({w:1,h:1,xAdv:9,xOff:0,yOff:0});
+  else if(i>=1&&i<=26) DSEG14_GLYPHS.push({w:26,h:40,xAdv:34,xOff:4,yOff:-40});
+  else if(i>=27&&i<=36) DSEG14_GLYPHS.push({w:26,h:40,xAdv:34,xOff:4,yOff:-40});
+  else if(i===37) DSEG14_GLYPHS.push({w:5,h:21,xAdv:9,xOff:2,yOff:-30});
+  else DSEG14_GLYPHS.push({w:11,h:26,xAdv:16,xOff:1,yOff:-26});
+}
 
-// --- DSEG14_Classic_Mini_Regular_40 ---
-// font60.h: 7-segment font, 40px height
-// 从 h 文件解析的实际 xAdvance / xOffset / yOffset
-// 核心用途: sprintf(buff, "%02d:%02d", hour, min) → 时钟
-// 预览: 固定显示 "88:88" 全显占位
-Fonts.DSEG14_Classic_Mini_Regular_40 = {
-  name: 'DSEG14_Classic_Mini_Regular_40',
-  yAdvance: 44,
-  // 从 font60.h 解析的实际 xAdvance
-  adv: {
-    0x20:9,0x21:34,0x22:34,0x23:34,0x24:34,0x25:34,0x26:34,0x27:10,0x28:14,0x29:14,
-    0x2A:34,0x2B:34,0x2C:34,0x2D:34,0x2E:9,0x2F:34,0x30:34,0x31:34,0x32:34,0x33:34,
-    0x34:34,0x35:34,0x36:34,0x37:34,0x38:34,0x39:34,0x3A:9,0x3B:34,0x3C:34,0x3D:34,
-    0x3E:34,0x3F:34,0x40:34,0x41:34,0x42:34,0x43:34,0x44:34,0x45:34,0x46:34,0x47:34,
-    0x48:34,0x49:34,0x4A:34,0x4B:34,0x4C:34,0x4D:34,0x4E:34,0x4F:34,0x50:34,0x51:34,
-    0x52:34,0x53:34,0x54:34,0x55:34,0x56:34,0x57:34,0x58:34,0x59:34,0x5A:34
-  },
-  charWidth: function(ch){
-    const code = ch.charCodeAt(0);
-    return this.adv[code] !== undefined ? this.adv[code] : 34;
-  },
-  charHeight: function(){ return 40; },
-  charTopOffset: function(){ return -40; },
-  // DSEG14 数字/冒号的真实宽度 (xAdvance)
-  digitWidth: 34,
-  colonWidth: 9
-};
+const FONT30_GLYPHS = [];
+for(let i=0;i<95;i++) {
+  if(i===0) FONT30_GLYPHS.push({w:1,h:1,xAdv:10,xOff:0,yOff:0});
+  else if(i>=1&&i<=26) FONT30_GLYPHS.push({w:18,h:21,xAdv:18,xOff:0,yOff:-21});
+  else if(i>=27&&i<=36) FONT30_GLYPHS.push({w:16,h:22,xAdv:19,xOff:2,yOff:-22});
+  else FONT30_GLYPHS.push({w:14,h:16,xAdv:17,xOff:1,yOff:-16});
+}
 
-// --- Special_Elite_Regular_30 ---
-// font30.h: 30px font, ASCII 0x20..0x7E
-Fonts.Special_Elite_Regular_30 = {
-  name: 'Special_Elite_Regular_30',
-  yAdvance: 34,
-  adv: {
-    0x20:8,0x21:14,0x22:12,0x23:17,0x24:17,0x25:17,0x26:17,0x27:6,0x28:10,0x29:10,
-    0x2A:17,0x2B:17,0x2C:17,0x2D:10,0x2E:8,0x2F:17,0x30:17,0x31:17,0x32:17,0x33:17,
-    0x34:17,0x35:17,0x36:17,0x37:17,0x38:17,0x39:17,0x3A:8,0x3B:17,0x3C:17,0x3D:17,
-    0x3E:17,0x3F:17,0x40:17,0x41:17,0x42:17,0x43:17,0x44:17,0x45:17,0x46:17,0x47:17,
-    0x48:17,0x49:17,0x4A:17,0x4B:17,0x4C:17,0x4D:17,0x4E:17,0x4F:17,0x50:17,0x51:17,
-    0x52:17,0x53:17,0x54:17,0x55:17,0x56:17,0x57:17,0x58:17,0x59:17,0x5A:17
-  },
-  charWidth: function(ch){
-    const code = ch.charCodeAt(0);
-    return this.adv[code] !== undefined ? this.adv[code] : 17;
-  },
-  charHeight: function(){ return 30; },
-  charTopOffset: function(){ return -30; }
-};
+function getGlyph(ch, font) {
+  const code = ch.charCodeAt(0);
+  if(code < 0x20 || code > 0x7E) return null;
+  const idx = code - 0x20;
+  if(font==='Dialog_plain_16') return FONT16_GLYPHS[idx] || null;
+  if(font==='Dialog_plain_16_zh') return FONT16ZH_GLYPHS[idx] || null;
+  if(font==='DSEG14_Classic_Mini_Regular_40') return DSEG14_GLYPHS[idx] || null;
+  if(font==='Special_Elite_Regular_30') return FONT30_GLYPHS[idx] || null;
+  return null;
+}
 
-const FONT_LIST = ['Dialog_plain_16','Dialog_plain_16_zh','DSEG14_Classic_Mini_Regular_40','Special_Elite_Regular_30'];
-
-/* ============================================================
-   状态管理
-   ============================================================ */
+// ============================================================
+// 状态
+// ============================================================
 let elements = [];
-let selectedIdx = -1;
 let nextId = 1;
-let dragState = null;
+let selectedId = null;
+let dragEl = null;
+let dragOffX = 0, dragOffY = 0;
 
+// ============================================================
+// 添加元素
+// ============================================================
+function addText() {
+  const el = {
+    id: nextId++,
+    type: 'text',
+    text: '',
+    variables: [],
+    preview: '',
+    font: 'Dialog_plain_16',
+    x: 10,
+    y: 20,
+    color: 1
+  };
+  elements.push(el);
+  selectedId = el.id;
+  drawCanvas();
+  renderProps();
+  renderList();
+}
+
+function addRect() {
+  const el = { id: nextId++, type: 'rect', x: 10, y: 10, w: 80, h: 20, filled: 0, color: 1 };
+  elements.push(el);
+  selectedId = el.id;
+  drawCanvas(); renderProps(); renderList();
+}
+
+function addLine() {
+  const el = { id: nextId++, type: 'line', x1: 10, y1: 10, x2: 100, y2: 10, color: 1 };
+  elements.push(el);
+  selectedId = el.id;
+  drawCanvas(); renderProps(); renderList();
+}
+
+function delElement(id) {
+  elements = elements.filter(e => e.id !== id);
+  if(selectedId === id) selectedId = null;
+  drawCanvas(); renderProps(); renderList();
+}
+
+function clearAll() {
+  if(!confirm('确定清空所有元素？')) return;
+  elements = []; selectedId = null;
+  drawCanvas(); renderProps(); renderList(); generateCode();
+}
+
+// ============================================================
+// 画布渲染
+// ============================================================
 const canvas = document.getElementById('epd');
 const ctx = canvas.getContext('2d');
-const gridCanvas = document.getElementById('grid');
-const gridCtx = gridCanvas.getContext('2d');
-const W = 296, H = 128;
 
-/* ============================================================
-   工具函数
-   ============================================================ */
-function snap(v){
-  const s = parseInt(document.getElementById('snapSel').value);
-  if (!s) return Math.max(0, Math.min(v, W));
-  return Math.max(0, Math.min(Math.round(v/s)*s, W));
+function drawCanvas() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 296, 128);
+
+  const gridSize = parseInt(document.getElementById('gridSize').value);
+  ctx.strokeStyle = 'rgba(0,80,0,0.3)';
+  ctx.lineWidth = 0.5;
+  for(let x=0; x<=296; x+=gridSize) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,128); ctx.stroke(); }
+  for(let y=0; y<=128; y+=gridSize) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(296,y); ctx.stroke(); }
+
+  for(const el of elements) {
+    if(el.type === 'text') drawTextEl(el);
+    else if(el.type === 'rect') drawRectEl(el);
+    else if(el.type === 'line') drawLineEl(el);
+  }
 }
 
-function escHtml(s){
-  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function escC(s){
-  return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"');
-}
-
-/* ============================================================
-   文本度量 — 使用真实 glyph 数据
-   关键: 整行文字共享同一个基线 y, 统一边界框
-   ============================================================ */
-
-// 单个字符的度量: { advance, w, h, xOff, yOff }
-function getCharMetric(ch, fontName){
-  const f = Fonts[fontName];
-  if (!f) return { advance:6, w:6, h:16, xOff:0, yOff:0 };
-
-  if (fontName === 'Dialog_plain_16'){
-    const code = ch.charCodeAt(0);
-    if (code >= 0x20 && code <= 0x7E){
-      const g = f.glyphs[code - 0x20];
-      if (g) return { advance:g[3], w:g[1], h:g[2], xOff:g[4], yOff:g[5] };
-    }
-    return { advance:6, w:6, h:16, xOff:0, yOff:0 };
-  }
-  if (fontName === 'Dialog_plain_16_zh'){
-    return { advance:18, w:16, h:16, xOff:16, yOff:-16 };
-  }
-  if (fontName === 'DSEG14_Classic_Mini_Regular_40'){
-    const code = ch.charCodeAt(0);
-    const adv = f.adv[code];
-    const a = adv !== undefined ? adv : 34;
-    return { advance:a, w:a, h:40, xOff:0, yOff:-40 };
-  }
-  if (fontName === 'Special_Elite_Regular_30'){
-    const code = ch.charCodeAt(0);
-    const adv = f.adv[code];
-    const a = adv !== undefined ? adv : 17;
-    return { advance:a, w:a, h:30, xOff:0, yOff:-30 };
-  }
-  return { advance:6, w:6, h:16, xOff:0, yOff:0 };
-}
-
-// 度量整行文本: 总宽 + 统一边界框
-// 基线为 el.y, 整行顶部 = y + min(yOff), 整行底部 = y + max(yOff + h)
-function measureText(text, fontName){
-  const f = Fonts[fontName];
-  if (!f) return {w:0, h:16, top:0};
-  if (!text) return {w:0, h:f.charHeight(), top:f.charTopOffset()||0};
-
+function drawTextEl(el) {
+  const baselineY = el.y;
+  const text = el.preview || el.text || ' ';
+  let curX = el.x;
+  let minTop = baselineY, maxBottom = baselineY;
   let totalW = 0;
-  let minTop = 0;   // 相对基线的顶部偏移 (负数)
-  let maxBottom = 0; // 相对基线的底部偏移 (正数)
+  const chars = [];
 
-  for (let i = 0; i < text.length; i++){
-    const m = getCharMetric(text[i], fontName);
-    totalW += m.advance;
-    if (m.yOff < minTop) minTop = m.yOff;
-    if (m.yOff + m.h > maxBottom) maxBottom = m.yOff + m.h;
+  for(let i=0; i<text.length; i++) {
+    const ch = text[i];
+    let g = getGlyph(ch, el.font);
+    if(!g) g = {w:16,h:16,xAdv:18,xOff:0,yOff:-16};
+    chars.push({ch, g, x: curX});
+    const charTop = baselineY + g.yOff;
+    minTop = Math.min(minTop, charTop);
+    maxBottom = Math.max(maxBottom, charTop + g.h);
+    totalW += g.xAdv;
+    curX += g.xAdv;
   }
 
-  return { w:totalW, h:maxBottom - minTop, top:minTop };
-}
+  const boxTop = minTop;
+  const boxH = maxBottom - minTop;
 
-// 获取文本元素的真实边界框 (整行统一, 基线坐标系)
-function getTextBB(el){
-  const m = measureText(el.preview || '', el.font);
-  return { x:el.x, y:el.y + m.top, w:m.w, h:m.h };
-}
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(el.x, boxTop, totalW, boxH);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(el.x, boxTop, totalW, boxH);
 
-/* ============================================================
-   画布渲染
-   ============================================================ */
-function render(){
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, W, H);
-
-  for (let i = 0; i < elements.length; i++){
-    const el = elements[i];
-    if (el.type === 'text'){
-      drawText(el);
-    } else if (el.type === 'rect'){
-      if (el.filled){
-        ctx.fillStyle = '#000';
-        ctx.fillRect(el.x, el.y, el.w, el.h);
-      } else {
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(el.x+0.5, el.y+0.5, el.w-1, el.h-1);
-      }
-    } else if (el.type === 'line'){
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(el.x+0.5, el.y+0.5);
-      ctx.lineTo(el.x2+0.5, el.y2+0.5);
-      ctx.stroke();
-    }
-  }
-
-  // 选中框
-  if (selectedIdx >= 0 && selectedIdx < elements.length){
-    const el = elements[selectedIdx];
-    ctx.strokeStyle = '#e94560';
+  if(el.font === 'DSEG14_Classic_Mini_Regular_40') {
+    const segW = totalW / 5;
+    ctx.strokeStyle = '#0cf';
     ctx.lineWidth = 1;
-    ctx.setLineDash([3,2]);
-    let bb;
-    if (el.type === 'text'){
-      bb = getTextBB(el);
-      ctx.strokeRect(bb.x-1.5, bb.y-1.5, bb.w+3, bb.h+3);
-    } else if (el.type === 'rect'){
-      ctx.strokeRect(el.x-1.5, el.y-1.5, el.w+3, el.h+3);
-    } else if (el.type === 'line'){
-      const minX = Math.min(el.x, el.x2), maxX = Math.max(el.x, el.x2);
-      const minY = Math.min(el.y, el.y2), maxY = Math.max(el.y, el.y2);
-      ctx.strokeRect(minX-2.5, minY-2.5, maxX-minX+5, maxY-minY+5);
+    for(let i=0; i<4; i++) {
+      ctx.strokeRect(el.x + i*segW + 2, boxTop + 2, segW - 4, boxH - 4);
     }
+    ctx.fillStyle = '#0cf';
+    ctx.fillRect(el.x + 4*segW + 2, boxTop + boxH*0.3, 3, 3);
+    ctx.fillRect(el.x + 4*segW + 2, boxTop + boxH*0.6, 3, 3);
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    for(const {ch, g, x} of chars) {
+      ctx.fillText(ch, x + g.xOff, baselineY);
+    }
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  if(selectedId === el.id) {
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.strokeRect(el.x, boxTop, totalW, boxH);
     ctx.setLineDash([]);
-
-    // 基线提示线
-    if (el.type === 'text'){
-      ctx.strokeStyle = 'rgba(233,69,96,.5)';
-      ctx.setLineDash([2,3]);
-      ctx.beginPath();
-      ctx.moveTo(el.x, el.y);
-      ctx.lineTo((bb||getTextBB(el)).x + (bb||getTextBB(el)).w, el.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-
-  updateElementList();
-  updateCode();
-}
-
-function drawText(el){
-  const text = el.preview || '';
-  if (!text) return;
-
-  if (el.font === 'DSEG14_Classic_Mini_Regular_40'){
-    drawDSEG14(el);
-    return;
-  }
-
-  const baseline = el.y;
-  const m = measureText(text, el.font);
-  const top = el.y + m.top;       // 整行顶部
-  const totalH = m.h;             // 整行统一高度
-
-  // 整行画一个黑色块 = 真实渲染区域 (墨水屏实际画出的范围)
-  ctx.fillStyle = '#000';
-  ctx.fillRect(el.x, top, m.w, totalH);
-
-  // 在黑块内标注字符: 所有字符基线对齐到 el.y
-  ctx.fillStyle = '#FFF';
-  ctx.textBaseline = 'alphabetic'; // 以基线为基准
-
-  let cx = el.x;
-  for (let i = 0; i < text.length; i++){
-    const ch = text[i];
-    const cm = getCharMetric(ch, el.font);
-
-    if (el.font === 'Dialog_plain_16_zh'){
-      // 中文: 检查是否在字库
-      if (Fonts.Dialog_plain_16_zh.chars[ch] !== undefined){
-        ctx.font = '11px sans-serif';
-        ctx.fillText(ch, cx + 1, baseline - 2); // 中文大致落在基线上方
-      } else {
-        // 不在字库: 红色 □ 占位
-        ctx.fillStyle = '#F85149';
-        ctx.font = '10px monospace';
-        ctx.fillText('□', cx + 4, baseline - 2);
-        ctx.fillStyle = '#FFF';
-      }
-    } else {
-      // 英文/数字: 基线对齐, 直接写
-      if (ch >= ' ' && ch <= '~' && ch !== ' '){
-        ctx.font = '11px monospace';
-        ctx.fillText(ch, cx + 1, baseline);
-      }
-    }
-    cx += cm.advance;
+    ctx.strokeStyle = 'rgba(255,0,0,0.6)';
+    ctx.beginPath();
+    ctx.moveTo(el.x, baselineY);
+    ctx.lineTo(el.x + totalW, baselineY);
+    ctx.stroke();
   }
 }
 
-// DSEG14: 七段数码管全显占位
-// 黑块(整行统一边界框) 是真实渲染区域, 数码管必须严格画在黑块内部
-function drawDSEG14(el){
-  const text = el.preview || '88:88';
-  const baseline = el.y;
-  const charH = 40;                    // 字符实际高度
-  const top = baseline - charH;        // 整行顶部 = 基线 - 40
-
-  // 整行统一黑块 = 真实渲染区域
-  const m = measureText(text, el.font);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(el.x, top, m.w, charH);
-
-  const digitW = 34;
-  const colonW = 9;
-  let cx = el.x;
-
-  for (let i = 0; i < text.length; i++){
-    const ch = text[i];
-
-    if (ch === ':'){
-      // 冒号: 上下两点, 严格在黑块内垂直居中
-      const dotW = 4;
-      const gap = colonW - dotW;
-      const x0 = cx + gap/2;
-      const segH = Math.max(2, Math.round(charH * 0.12));
-      const topDotY = top + Math.round(charH * 0.30);
-      const botDotY = top + Math.round(charH * 0.58);
-      ctx.fillStyle = '#58a6ff';
-      ctx.fillRect(x0, topDotY, dotW, segH);
-      ctx.fillRect(x0, botDotY, dotW, segH);
-      cx += colonW;
-      continue;
-    }
-
-    // 数字: 蓝色暗底
-    ctx.fillStyle = '#101820';
-    ctx.fillRect(cx, top, digitW, charH);
-
-    // 七段数码管: 用字符高度百分比定位, 保证不超出黑块
-    //   aaa
-    //  f   b
-    //   ggg
-    //  e   c
-    //   ddd
-    const px = cx;
-    const py = top;
-    const W = digitW;
-    const H = charH;
-    const segH = Math.max(2, Math.round(H * 0.10));   // 每段厚度
-    const gap = Math.max(1, Math.round(H * 0.03));    // 段间隙
-    const sideIn = Math.round(W * 0.14);              // 斜边内收
-
-    ctx.fillStyle = '#58a6ff';
-    const segs = getSevenSeg(ch);
-
-    // a: 上横
-    if (segs.a) ctx.fillRect(px+sideIn, py+gap, W-sideIn*2, segH);
-    // d: 下横
-    if (segs.d) ctx.fillRect(px+sideIn, py+H-segH-gap, W-sideIn*2, segH);
-    // g: 中横
-    if (segs.g) ctx.fillRect(px+sideIn, py+Math.round(H/2)-Math.round(segH/2), W-sideIn*2, segH);
-    // f: 左上竖
-    if (segs.f) ctx.fillRect(px+gap, py+gap+segH-gap, segH, Math.round(H/2)-segH+gap);
-    // b: 右上竖
-    if (segs.b) ctx.fillRect(px+W-segH-gap, py+gap+segH-gap, segH, Math.round(H/2)-segH+gap);
-    // e: 左下竖
-    if (segs.e) ctx.fillRect(px+gap, py+Math.round(H/2), segH, Math.round(H/2)-segH+gap);
-    // c: 右下竖
-    if (segs.c) ctx.fillRect(px+W-segH-gap, py+Math.round(H/2), segH, Math.round(H/2)-segH+gap);
-
-    cx += digitW;
-  }
+function drawRectEl(el) {
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+  if(el.filled) { ctx.fillStyle = '#fff'; ctx.fillRect(el.x, el.y, el.w, el.h); }
+  else ctx.strokeRect(el.x, el.y, el.w, el.h);
+  if(selectedId === el.id) { ctx.strokeStyle='red'; ctx.setLineDash([3,3]); ctx.strokeRect(el.x,el.y,el.w,el.h); ctx.setLineDash([]); }
 }
 
-// 七段数码管段映射 (简化)
-function getSevenSeg(ch){
-  // 返回哪些段要点亮: a=上, b=右上, c=右下, d=下, e=左下, f=左上, g=中
-  const map = {
-    '0':{a:1,b:1,c:1,d:1,e:1,f:1,g:0},
-    '1':{a:0,b:1,c:1,d:0,e:0,f:0,g:0},
-    '2':{a:1,b:1,c:0,d:1,e:1,f:0,g:1},
-    '3':{a:1,b:1,c:1,d:1,e:0,f:0,g:1},
-    '4':{a:0,b:1,c:1,d:0,e:0,f:1,g:1},
-    '5':{a:1,b:0,c:1,d:1,e:0,f:1,g:1},
-    '6':{a:1,b:0,c:1,d:1,e:1,f:1,g:1},
-    '7':{a:1,b:1,c:1,d:0,e:0,f:0,g:0},
-    '8':{a:1,b:1,c:1,d:1,e:1,f:1,g:1},
-    '9':{a:1,b:1,c:1,d:1,e:0,f:1,g:1},
-    '-':{a:0,b:0,c:0,d:0,e:0,f:0,g:1},
-    ' ':{a:0,b:0,c:0,d:0,e:0,f:0,g:0},
-  };
-  return map[ch] || {a:1,b:1,c:1,d:1,e:1,f:1,g:1}; // 未知字符全亮
+function drawLineEl(el) {
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+  if(selectedId === el.id) { ctx.strokeStyle='red'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(el.x1,el.y1); ctx.lineTo(el.x2,el.y2); ctx.stroke(); ctx.setLineDash([]); }
 }
 
-/* ============================================================
-   网格
-   ============================================================ */
-function drawGrid(){
-  gridCtx.clearRect(0, 0, W, H);
-  const s = parseInt(document.getElementById('snapSel').value);
-  if (!s) return;
-  gridCtx.strokeStyle = 'rgba(255,255,255,.06)';
-  gridCtx.lineWidth = 1;
-  gridCtx.beginPath();
-  for (let x = 0; x <= W; x += s){
-    gridCtx.moveTo(x, 0); gridCtx.lineTo(x, H);
-  }
-  for (let y = 0; y <= H; y += s){
-    gridCtx.moveTo(0, y); gridCtx.lineTo(W, y);
-  }
-  gridCtx.stroke();
-}
-document.getElementById('snapSel').addEventListener('change', drawGrid);
-
-/* ============================================================
-   元素操作
-   ============================================================ */
-function addElement(type){
-  let el;
-  const font = document.getElementById('fontSel').value;
-  if (type === 'text'){
-    // 新文本元素: preview 默认空, 用户自己填
-    el = {
-      id: nextId++,
-      type: 'text',
-      text: 'Text',
-      variables: [],
-      preview: '',  // 用户自定义预览文字, 生成代码时忽略
-      font: font,
-      x: 20, y: 20,
-      color: 1
-    };
-    // DSEG14 默认预览 88:88
-    if (font === 'DSEG14_Classic_Mini_Regular_40'){
-      el.preview = '88:88';
-      el.text = '%02d:%02d';
-    }
-  } else if (type === 'rect'){
-    el = {
-      id: nextId++,
-      type: 'rect',
-      x: 20, y: 20,
-      w: 40, h: 20,
-      filled: false
-    };
-  } else if (type === 'line'){
-    el = {
-      id: nextId++,
-      type: 'line',
-      x: 20, y: 20,
-      x2: 60, y2: 60
-    };
-  }
-  elements.push(el);
-  selectedIdx = elements.length - 1;
-  render();
-  updateProps();
-}
-
-function deleteElement(idx, e){
-  if (e) e.stopPropagation();
-  elements.splice(idx, 1);
-  if (selectedIdx >= elements.length) selectedIdx = elements.length - 1;
-  if (elements.length === 0) selectedIdx = -1;
-  render();
-  updateProps();
-}
-
-function clearAll(){
-  if (!confirm('确定清空所有元素？')) return;
-  elements = [];
-  selectedIdx = -1;
-  render();
-  updateProps();
-}
-
-/* ============================================================
-   元素列表
-   ============================================================ */
-function updateElementList(){
-  const list = document.getElementById('elementList');
-  list.innerHTML = '';
-  elements.forEach(function(el, i){
-    const div = document.createElement('div');
-    div.className = 'element-item' + (i === selectedIdx ? ' selected' : '');
-
-    let badge, label;
-    if (el.type === 'text'){
-      badge = '<span class="badge text">文</span>';
-      const m = measureText(el.preview || '', el.font);
-      const displayText = el.preview || el.text || '(空)';
-      label = `"${displayText.substring(0,12)}" ${m.w}×${m.h}`;
-    } else if (el.type === 'rect'){
-      badge = '<span class="badge rect">矩</span>';
-      label = `${el.w}×${el.h} @(${el.x},${el.y})`;
-    } else {
-      badge = '<span class="badge line">线</span>';
-      label = `(${el.x},${el.y})→(${el.x2},${el.y2})`;
-    }
-
-    div.innerHTML = `${badge}<span class="label">${escHtml(label)}</span><span class="del" onclick="deleteElement(${i},event)">×</span>`;
-    div.onclick = function(){ selectedIdx = i; render(); updateProps(); };
-    list.appendChild(div);
-  });
-}
-
-/* ============================================================
-   属性面板
-   ============================================================ */
-function updateProps(){
-  const panel = document.getElementById('propsPanel');
-  if (selectedIdx < 0 || selectedIdx >= elements.length){
-    panel.innerHTML = '<h3>属性</h3><p style="color:var(--muted);font-size:12px;">在画布上选中或添加一个元素以编辑</p>';
-    return;
-  }
-
-  const el = elements[selectedIdx];
-  let html = '<h3>属性</h3>';
-
-  if (el.type === 'text'){
-    // 格式串 (生成代码用)
-    html += `
-    <div class="prop-group">
-      <label>格式串 (sprintf 第1参数, 生成代码用)</label>
-      <textarea oninput="updateText(${selectedIdx},this.value)">${escHtml(el.text)}</textarea>
-      <div class="hint">支持 printf 格式: <code>%d</code> <code>%02X</code> <code>%s</code> <code>%c</code></div>
-    </div>`;
-
-    // 变量绑定
-    html += `<div class="prop-group"><label>变量绑定 (按 % 出现顺序, 生成代码用)</label>`;
-    html += `<div class="preset-bar">`;
-    html += `<button onclick="addPreset(${selectedIdx},'mac_public[2]')">mac[2]</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'mac_public[1]')">mac[1]</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'mac_public[0]')">mac[0]</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_hour')">hour</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_min')">min</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_sec')">sec</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_year')">year</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_month')">mon</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_day')">day</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'_time.tm_week')">week</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'battery_mv')">batt_mV</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'battery_level')">batt_%</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'EPD_read_temp()')">temp</button>`;
-    html += `<button onclick="addPreset(${selectedIdx},'ble_get_connected()')">ble</button>`;
-    html += `</div>`;
-
-    html += `<div class="var-list" id="varList">`;
-    el.variables.forEach(function(v, vi){
-      html += `<div class="var-row">
-        <span class="idx">%${vi+1}</span>
-        <input type="text" placeholder="C表达式, 如 mac_public[2]" value="${escHtml(v)}" oninput="updateVar(${selectedIdx},${vi},this.value)">
-        <span class="vdel" onclick="removeVar(${selectedIdx},${vi})">×</span>
-      </div>`;
-    });
-    html += `</div>`;
-    html += `<button class="add-var" onclick="addVar(${selectedIdx})">+ 添加变量</button>`;
-    if ((el.variables||[]).length === 0){
-      html += `<div class="hint">当前无变量 → 生成代码将直接传字符串字面量</div>`;
-    }
-    html += `</div>`;
-
-    // 预览文字 (画布显示用, 生成代码忽略)
-    const isDSEG = el.font === 'DSEG14_Classic_Mini_Regular_40';
-    html += `
-    <div class="prop-group">
-      <label>预览文字 (画布显示, 生成代码时忽略)</label>
-      <input type="text" value="${escHtml(el.preview||'')}" oninput="updatePreview(${selectedIdx},this.value)" placeholder="${isDSEG ? '88:88' : '留空则不显示'}">
-      ${isDSEG ? '<div class="hint">DSEG14 为七段数码管字体, 预览显示为数码管样式</div>' : ''}
-    </div>`;
-
-    // 字体
-    html += `
-    <div class="prop-group">
-      <label>字体 (GFXfont*)</label>
-      <select onchange="elements[${selectedIdx}].font=this.value;onFontChange(${selectedIdx});render();updateProps()">`;
-    FONT_LIST.forEach(function(fn){
-      html += `<option value="${fn}" ${el.font===fn?'selected':''}>${fn}</option>`;
-    });
-    html += `</select>
-      <div class="hint">y 坐标 = <b>基线(baseline)</b>, 非顶部. ${isDSEG ? '<br>DSEG14 固定为时钟用途, 格式串建议 <code>%02d:%02d</code>' : ''}</div>
-    </div>`;
-
-    // 坐标
-    const m = measureText(el.preview || '', el.font);
-    const bb = getTextBB(el);
-    html += `
-    <div class="prop-row">
-      <div class="prop-group"><label>X</label><input type="number" oninput="elements[${selectedIdx}].x=parseInt(this.value)||0;render()" value="${el.x}"></div>
-      <div class="prop-group"><label>Y (基线)</label><input type="number" oninput="elements[${selectedIdx}].y=parseInt(this.value)||0;render()" value="${el.y}"></div>
-    </div>
-    <div class="prop-group">
-      <label>尺寸 (自动计算)</label>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:11px;color:var(--muted);font-family:monospace;">宽: ${m.w}px, 高: ${m.h}px<br>顶部: y${bb.y>=0?'+':''}${bb.y-el.y} = ${bb.y}px</div>
-    </div>`;
-
-    // 颜色
-    html += `
-    <div class="prop-group">
-      <label>显示模式</label>
-      <div class="color-toggle">
-        <label><input type="radio" name="color${selectedIdx}" value="1" ${el.color?'checked':''} onchange="elements[${selectedIdx}].color=1;render()"><span>白底黑字 (1)</span></label>
-        <label><input type="radio" name="color${selectedIdx}" value="0" ${!el.color?'checked':''} onchange="elements[${selectedIdx}].color=0;render()"><span>黑底白字 (0)</span></label>
-      </div>
-    </div>`;
-
-  } else if (el.type === 'rect'){
-    html += `
-    <div class="prop-row">
-      <div class="prop-group"><label>X1</label><input type="number" oninput="elements[${selectedIdx}].x=parseInt(this.value)||0;render()" value="${el.x}"></div>
-      <div class="prop-group"><label>Y1</label><input type="number" oninput="elements[${selectedIdx}].y=parseInt(this.value)||0;render()" value="${el.y}"></div>
-    </div>
-    <div class="prop-row">
-      <div class="prop-group"><label>宽 W</label><input type="number" oninput="elements[${selectedIdx}].w=parseInt(this.value)||0;render()" value="${el.w}"></div>
-      <div class="prop-group"><label>高 H</label><input type="number" oninput="elements[${selectedIdx}].h=parseInt(this.value)||0;render()" value="${el.h}"></div>
-    </div>
-    <div class="prop-group">
-      <label>X2, Y2 (自动)</label>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:11px;color:var(--muted);font-family:monospace;">${el.x+el.w-1}, ${el.y+el.h-1}</div>
-    </div>
-    <div class="prop-group">
-      <label style="cursor:pointer;"><input type="checkbox" ${el.filled?'checked':''} onchange="elements[${selectedIdx}].filled=this.checked;render()"> 填充 (filled)</label>
-      <div class="hint"><code>obdRectangle(&obd, x1,y1,x2,y2, filled, radius)</code></div>
-    </div>`;
-  } else if (el.type === 'line'){
-    html += `
-    <div class="prop-row">
-      <div class="prop-group"><label>X1</label><input type="number" oninput="elements[${selectedIdx}].x=parseInt(this.value)||0;render()" value="${el.x}"></div>
-      <div class="prop-group"><label>Y1</label><input type="number" oninput="elements[${selectedIdx}].y=parseInt(this.value)||0;render()" value="${el.y}"></div>
-    </div>
-    <div class="prop-row">
-      <div class="prop-group"><label>X2</label><input type="number" oninput="elements[${selectedIdx}].x2=parseInt(this.value)||0;render()" value="${el.x2}"></div>
-      <div class="prop-group"><label>Y2</label><input type="number" oninput="elements[${selectedIdx}].y2=parseInt(this.value)||0;render()" value="${el.y2}"></div>
-    </div>
-    <div class="prop-group">
-      <label>长度</label>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:11px;color:var(--muted);font-family:monospace;">${Math.round(Math.sqrt((el.x2-el.x)**2+(el.y2-el.y)**2))}px</div>
-    </div>
-    <div class="hint"><code>obdDrawLine(&obd, x1,y1,x2,y2, color)</code></div>`;
-  }
-
-  panel.innerHTML = html;
-}
-
-function onFontChange(idx){
-  const el = elements[idx];
-  // DSEG14: 自动设置默认格式串和预览
-  if (el.font === 'DSEG14_Classic_Mini_Regular_40'){
-    if (!el.text || el.text === 'Text') el.text = '%02d:%02d';
-    if (!el.preview) el.preview = '88:88';
-  }
-}
-
-function updateText(idx, val){
-  elements[idx].text = val;
-  render();
-}
-
-function updatePreview(idx, val){
-  elements[idx].preview = val;
-  render();
-}
-
-function updateVar(idx, vi, val){
-  elements[idx].variables[vi] = val.trim();
-  render();
-}
-
-function addVar(idx){
-  if (!elements[idx].variables) elements[idx].variables = [];
-  elements[idx].variables.push('');
-  updateProps();
-}
-
-function addPreset(idx, val){
-  if (!elements[idx].variables) elements[idx].variables = [];
-  elements[idx].variables.push(val);
-  render();
-  updateProps();
-}
-
-function removeVar(idx, vi){
-  elements[idx].variables.splice(vi, 1);
-  render();
-  updateProps();
-}
-
-/* ============================================================
-   鼠标交互
-   ============================================================ */
-function getCanvasPos(e){
+// ============================================================
+// 鼠标交互
+// ============================================================
+canvas.addEventListener('mousedown', function(e) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = W / rect.width;
-  const scaleY = H / rect.height;
-  return {
-    x: Math.floor((e.clientX - rect.left) * scaleX),
-    y: Math.floor((e.clientY - rect.top) * scaleY)
-  };
-}
-
-function pointToLineDist(px, py, x1, y1, x2, y2){
-  const A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
-  const dot = A*C + B*D;
-  const lenSq = C*C + D*D;
-  let param = lenSq ? dot/lenSq : -1;
-  let xx, yy;
-  if (param < 0){ xx=x1; yy=y1; }
-  else if (param > 1){ xx=x2; yy=y2; }
-  else { xx=x1+param*C; yy=y1+param*D; }
-  return Math.sqrt((px-xx)**2 + (py-yy)**2);
-}
-
-canvas.addEventListener('mousemove', function(e){
-  const p = getCanvasPos(e);
-  p.x = Math.max(0, Math.min(p.x, W));
-  p.y = Math.max(0, Math.min(p.y, H));
-  document.getElementById('coordHud').textContent = `x:${p.x} y:${p.y}`;
-
-  if (dragState){
-    const dx = p.x - dragState.startX;
-    const dy = p.y - dragState.startY;
-    const el = elements[dragState.idx];
-
-    if (el.type === 'text' || el.type === 'rect'){
-      el.x = snap(dragState.origX + dx);
-      el.y = snap(dragState.origY + dy);
-    } else if (el.type === 'line'){
-      el.x2 = snap(dragState.origX2 + dx);
-      el.y2 = snap(dragState.origY2 + dy);
-    }
-    render();
-    if (selectedIdx === dragState.idx){
-      const inputs = document.querySelectorAll('#propsPanel input[type=number]');
-      if (inputs[0]) inputs[0].value = el.x;
-      if (inputs[1]) inputs[1].value = el.y;
-    }
-  }
-});
-
-canvas.addEventListener('mousedown', function(e){
-  const p = getCanvasPos(e);
-  for (let i = elements.length - 1; i >= 0; i--){
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+  for(let i=elements.length-1; i>=0; i--) {
     const el = elements[i];
-    let hit = false;
-    if (el.type === 'text'){
-      const bb = getTextBB(el);
-      hit = (p.x >= bb.x && p.x <= bb.x + bb.w && p.y >= bb.y && p.y <= bb.y + bb.h);
-    } else if (el.type === 'rect'){
-      hit = (p.x >= el.x && p.x <= el.x + el.w && p.y >= el.y && p.y <= el.y + el.h);
-    } else if (el.type === 'line'){
-      const minX = Math.min(el.x, el.x2), maxX = Math.max(el.x, el.x2);
-      const minY = Math.min(el.y, el.y2), maxY = Math.max(el.y, el.y2);
-      const dist = pointToLineDist(p.x, p.y, el.x, el.y, el.x2, el.y2);
-      hit = (p.x >= minX-3 && p.x <= maxX+3 && p.y >= minY-3 && p.y <= maxY+3 && dist < 4);
-    }
-    if (hit){
-      selectedIdx = i;
-      dragState = {
-        idx: i,
-        startX: p.x, startY: p.y,
-        origX: el.x, origY: el.y,
-        origX2: el.x2 || 0, origY2: el.y2 || 0
-      };
-      render();
-      updateProps();
+    if(hitTest(el, mx, my)) {
+      selectedId = el.id;
+      dragEl = el;
+      dragOffX = mx - (el.x || el.x1);
+      dragOffY = my - (el.y || el.y1);
+      renderProps(); renderList(); drawCanvas();
       return;
     }
   }
-  selectedIdx = -1;
-  dragState = null;
-  render();
-  updateProps();
+  selectedId = null;
+  renderProps(); renderList(); drawCanvas();
 });
 
-canvas.addEventListener('mouseup', function(){ dragState = null; });
-canvas.addEventListener('mouseleave', function(){ dragState = null; });
+canvas.addEventListener('mousemove', function(e) {
+  if(!dragEl) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+  const gridSize = parseInt(document.getElementById('gridSize').value);
+  let newX = Math.round((mx - dragOffX) / gridSize) * gridSize;
+  let newY = Math.round((my - dragOffY) / gridSize) * gridSize;
+  newX = Math.max(0, Math.min(296 - 10, newX));
+  newY = Math.max(0, Math.min(128 - 10, newY));
+  if(dragEl.type === 'text') { dragEl.x = newX; dragEl.y = newY; }
+  else if(dragEl.type === 'rect') { dragEl.x = newX; dragEl.y = newY; }
+  else if(dragEl.type === 'line') { dragEl.x1 = newX; dragEl.y1 = newY; dragEl.x2 = newX + 50; dragEl.y2 = newY; }
+  drawCanvas(); renderProps();
+});
 
-/* ============================================================
-   代码生成 — 只输出调用部分
-   ============================================================ */
-function updateCode(){
-  let code = '';
+canvas.addEventListener('mouseup', function() { dragEl = null; });
+canvas.addEventListener('mouseleave', function() { dragEl = null; });
 
-  elements.forEach(function(el, i){
-    const desc = el.type==='text' ? (el.text||'(空)') : el.type==='rect' ? `${el.w}x${el.h}` : 'line';
-    code += `// [${i+1}] ${escHtml(desc)}\n`;
+function hitTest(el, mx, my) {
+  if(el.type === 'text') {
+    const text = el.preview || el.text || ' ';
+    let totalW = 0;
+    for(let i=0; i<text.length; i++) { const g = getGlyph(text[i], el.font) || {w:16,h:16,xAdv:18,xOff:0,yOff:-16}; totalW += g.xAdv; }
+    return mx >= el.x && mx <= el.x + totalW && my >= el.y - 16 && my <= el.y + 4;
+  } else if(el.type === 'rect') {
+    return mx >= el.x && mx <= el.x + el.w && my >= el.y && my <= el.y + el.h;
+  } else if(el.type === 'line') {
+    return Math.min(el.x1, el.x2) <= mx && mx <= Math.max(el.x1, el.x2) && Math.min(el.y1, el.y2) <= my && my <= Math.max(el.y1, el.y2);
+  }
+  return false;
+}
 
-    if (el.type === 'text'){
-      if ((el.variables||[]).length > 0){
-        // 有变量 → sprintf + obdWriteStringCustom
-        const varList = el.variables.map(function(v){ return v.trim() || '/* ? */'; }).join(', ');
-        code += `sprintf(buff, "${escC(el.text)}", ${varList});\n`;
-        code += `obdWriteStringCustom(&obd, (GFXfont *)&${el.font}, ${el.x}, ${el.y}, (char *)buff, ${el.color});\n`;
-      } else {
-        // 无变量 → 直接传字符串
-        code += `obdWriteStringCustom(&obd, (GFXfont *)&${el.font}, ${el.x}, ${el.y}, "${escC(el.text)}", ${el.color});\n`;
-      }
-    } else if (el.type === 'rect'){
-      const filled = el.filled ? 1 : 0;
-      code += `obdRectangle(&obd, ${el.x}, ${el.y}, ${el.x+el.w-1}, ${el.y+el.h-1}, ${filled}, ${filled});\n`;
-    } else if (el.type === 'line'){
-      code += `obdDrawLine(&obd, ${el.x}, ${el.y}, ${el.x2}, ${el.y2}, 1);\n`;
+// ============================================================
+// 属性面板 —— 关键修复：所有修改通过 selectedId 实时查 elements
+// ============================================================
+function renderProps() {
+  const area = document.getElementById('propsArea');
+  const el = elements.find(e => e.id === selectedId);
+  if(!el) { area.innerHTML = '<p style="color:#666;font-size:12px;">点击画布上的元素或"+"添加新元素</p>'; return; }
+
+  if(el.type === 'text') {
+    let varsHtml = '';
+    for(let i=0; i<el.variables.length; i++) {
+      varsHtml += `<div class="var-row">
+        <input value="${escHtml(el.variables[i])}" onchange="setVar(${i}, this.value)" placeholder="C表达式">
+        <button class="var-del" onclick="removeVar(${i})">×</button>
+      </div>`;
     }
-    code += '\n';
-  });
 
-  if (!code) code = '// 添加元素后此处生成代码\n';
-  document.getElementById('codeOutput').textContent = code;
+    area.innerHTML = `
+      <div class="prop-row">
+        <label>格式串（生成代码用）:</label>
+        <input id="fld_text" value="${escHtml(el.text)}" onchange="setProp('text', this.value)" placeholder="如: S24_%02X%02X%02X BW213">
+      </div>
+      <div class="prop-row">
+        <label>变量绑定（按顺序）:</label>
+        ${varsHtml}
+        <button class="add-var-btn" onclick="pushVar()">+ 添加变量</button>
+      </div>
+      <div class="prop-row">
+        <label>预览文字（画布显示，生成时忽略）:</label>
+        <input id="fld_preview" value="${escHtml(el.preview)}" onchange="setProp('preview', this.value)" placeholder="如: S24_94EA67">
+      </div>
+      <div class="prop-row">
+        <label>字体:</label>
+        <select onchange="setProp('font', this.value)">
+          <option value="Dialog_plain_16" ${el.font==='Dialog_plain_16'?'selected':''}>Dialog_plain_16</option>
+          <option value="Dialog_plain_16_zh" ${el.font==='Dialog_plain_16_zh'?'selected':''}>Dialog_plain_16_zh</option>
+          <option value="DSEG14_Classic_Mini_Regular_40" ${el.font==='DSEG14_Classic_Mini_Regular_40'?'selected':''}>DSEG14 数码管</option>
+          <option value="Special_Elite_Regular_30" ${el.font==='Special_Elite_Regular_30'?'selected':''}>Special_Elite</option>
+        </select>
+      </div>
+      <div class="prop-row">
+        <label>X / Y (基线):</label>
+        <div style="display:flex;gap:4px;">
+          <input type="number" value="${el.x}" onchange="setProp('x', +this.value)" style="width:60px;">
+          <input type="number" value="${el.y}" onchange="setProp('y', +this.value)" style="width:60px;">
+        </div>
+      </div>
+      <div class="prop-row">
+        <label>颜色:</label>
+        <select onchange="setProp('color', +this.value)">
+          <option value="1" ${el.color===1?'selected':''}>白底黑字</option>
+          <option value="0" ${el.color===0?'selected':''}>黑底白字</option>
+        </select>
+      </div>
+      <button onclick="delElement(${el.id})" style="background:#900;color:#fff;border:none;padding:4px 12px;border-radius:3px;cursor:pointer;margin-top:8px;">删除此元素</button>
+    `;
+  } else if(el.type === 'rect') {
+    area.innerHTML = `
+      <div class="prop-row"><label>X</label><input type="number" value="${el.x}" onchange="setProp('x',+this.value)"></div>
+      <div class="prop-row"><label>Y</label><input type="number" value="${el.y}" onchange="setProp('y',+this.value)"></div>
+      <div class="prop-row"><label>宽</label><input type="number" value="${el.w}" onchange="setProp('w',+this.value)"></div>
+      <div class="prop-row"><label>高</label><input type="number" value="${el.h}" onchange="setProp('h',+this.value)"></div>
+      <div class="prop-row"><label>填充</label><select onchange="setProp('filled',+this.value)"><option value="0" ${!el.filled?'selected':''}>空心</option><option value="1" ${el.filled?'selected':''}>实心</option></select></div>
+      <div class="prop-row"><label>颜色</label><select onchange="setProp('color',+this.value)"><option value="1" ${el.color===1?'selected':''}>白</option><option value="0" ${el.color===0?'selected':''}>黑</option></select></div>
+      <button onclick="delElement(${el.id})" style="background:#900;color:#fff;border:none;padding:4px 12px;border-radius:3px;cursor:pointer;margin-top:8px;">删除此元素</button>
+    `;
+  } else if(el.type === 'line') {
+    area.innerHTML = `
+      <div class="prop-row"><label>X1</label><input type="number" value="${el.x1}" onchange="setProp('x1',+this.value)"></div>
+      <div class="prop-row"><label>Y1</label><input type="number" value="${el.y1}" onchange="setProp('y1',+this.value)"></div>
+      <div class="prop-row"><label>X2</label><input type="number" value="${el.x2}" onchange="setProp('x2',+this.value)"></div>
+      <div class="prop-row"><label>Y2</label><input type="number" value="${el.y2}" onchange="setProp('y2',+this.value)"></div>
+      <div class="prop-row"><label>颜色</label><select onchange="setProp('color',+this.value)"><option value="1" ${el.color===1?'selected':''}>白</option><option value="0" ${el.color===0?'selected':''}>黑</option></select></div>
+      <button onclick="delElement(${el.id})" style="background:#900;color:#fff;border:none;padding:4px 12px;border-radius:3px;cursor:pointer;margin-top:8px;">删除此元素</button>
+    `;
+  }
 }
 
-function copyCode(){
-  const ta = document.getElementById('codeOutput');
-  const range = document.createRange();
-  range.selectNode(ta);
-  window.getSelection().removeAllRanges();
-  window.getSelection().addRange(range);
-  try { document.execCommand('copy'); alert('代码已复制到剪贴板'); }
-  catch(e){ alert('复制失败, 请手动选择复制'); }
-  window.getSelection().removeAllRanges();
+// 核心修复函数：通过 selectedId 查找，确保写入 elements 数组
+function setProp(key, val) {
+  const el = elements.find(e => e.id === selectedId);
+  if(!el) return;
+  el[key] = val;
+  drawCanvas();
+  renderList();
+  if(key === 'text' || key === 'preview' || key === 'font') renderProps(); // 这些影响预览需要重绘面板
 }
 
-function exportC(){
-  const code = document.getElementById('codeOutput').textContent;
-  const blob = new Blob([code], {type:'text/plain'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'epd_layout_output.c';
-  a.click();
+function pushVar() {
+  const el = elements.find(e => e.id === selectedId);
+  if(!el) return;
+  el.variables.push('');
+  renderProps();
 }
 
-/* ============================================================
-   JSON 持久化
-   ============================================================ */
-function saveJSON(){
-  const data = JSON.stringify(elements, null, 2);
+function removeVar(idx) {
+  const el = elements.find(e => e.id === selectedId);
+  if(!el) return;
+  el.variables.splice(idx, 1);
+  renderProps();
+}
+
+function setVar(idx, val) {
+  const el = elements.find(e => e.id === selectedId);
+  if(!el) return;
+  el.variables[idx] = val;
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ============================================================
+// 元素列表
+// ============================================================
+function renderList() {
+  const list = document.getElementById('elList');
+  list.innerHTML = elements.map(el => {
+    const name = el.type==='text' ? `T:"${escHtml((el.preview||el.text||'空').substring(0,8))}"` :
+                  el.type==='rect' ? `R:${el.w}×${el.h}` : `L:(${el.x1},${el.y1})`;
+    return `<div class="el-item ${el.id===selectedId?'selected':''}" onclick="selectEl(${el.id})">
+      <span>${name}</span>
+      <button class="el-del" onclick="event.stopPropagation();delElement(${el.id})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function selectEl(id) { selectedId = id; renderProps(); renderList(); drawCanvas(); }
+
+// ============================================================
+// 代码生成
+// ============================================================
+function generateCode() {
+  let code = '// 生成于 ' + new Date().toLocaleString() + '\n\n';
+  for(const el of elements) {
+    if(el.type === 'text') {
+      if(el.variables && el.variables.length > 0) {
+        code += `sprintf(buff, "${escHtml(el.text)}", ${el.variables.map(v=>v||'0').join(', ')});\n`;
+        code += `obdWriteStringCustom(&obd, (GFXfont *)&${el.font}, ${el.x}, ${el.y}, (char *)buff, ${el.color});\n\n`;
+      } else {
+        code += `obdWriteStringCustom(&obd, (GFXfont *)&${el.font}, ${el.x}, ${el.y}, "${escHtml(el.text)}", ${el.color});\n\n`;
+      }
+    } else if(el.type === 'rect') {
+      code += `obdRectangle(&obd, ${el.x}, ${el.y}, ${el.x+el.w-1}, ${el.y+el.h-1}, ${el.color}, ${el.filled});\n\n`;
+    } else if(el.type === 'line') {
+      code += `obdDrawLine(&obd, ${el.x1}, ${el.y1}, ${el.x2}, ${el.y2}, ${el.color});\n\n`;
+    }
+  }
+  document.getElementById('codeOut').textContent = code;
+}
+
+// ============================================================
+// JSON
+// ============================================================
+function saveJSON() {
+  const data = JSON.stringify({elements, nextId}, null, 2);
   const blob = new Blob([data], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1116,90 +525,27 @@ function saveJSON(){
   a.click();
 }
 
-function loadJSON(){
+function loadJSON() {
   const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = function(e){
-    const file = e.target.files[0];
-    if (!file) return;
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = function() {
     const reader = new FileReader();
-    reader.onload = function(){
+    reader.onload = function() {
       try {
-        const parsed = JSON.parse(reader.result);
-        if (!Array.isArray(parsed)) throw new Error('Invalid JSON');
-        elements = parsed;
-        nextId = elements.reduce(function(m, el){ return Math.max(m, el.id || 0); }, 0) + 1;
-        // 兼容旧版: 没有 preview 字段的补上
-        elements.forEach(function(el){
-          if (el.type === 'text' && el.preview === undefined){
-            el.preview = '';
-          }
-        });
-        selectedIdx = -1;
-        render();
-        updateProps();
-      } catch(err){ alert('JSON 解析失败: ' + err.message); }
+        const data = JSON.parse(reader.result);
+        elements = data.elements || [];
+        nextId = data.nextId || 1;
+        selectedId = null;
+        drawCanvas(); renderProps(); renderList(); generateCode();
+      } catch(e) { alert('JSON 解析失败: ' + e.message); }
     };
-    reader.readAsText(file);
+    reader.readAsText(input.files[0]);
   };
   input.click();
 }
 
-/* ============================================================
-   初始化 — 载入一个示例
-   ============================================================ */
-elements = [
-  {
-    id: 1, type: 'text',
-    text: '%02d:%02d',
-    variables: ['_time.tm_hour', '_time.tm_min'],
-    preview: '12:34',
-    font: 'DSEG14_Classic_Mini_Regular_40',
-    x: 100, y: 65, color: 1
-  },
-  {
-    id: 2, type: 'text',
-    text: 'S24_%02X%02X%02X BW213',
-    variables: ['mac_public[2]', 'mac_public[1]', 'mac_public[0]'],
-    preview: 'S24_94EA67',
-    font: 'Dialog_plain_16',
-    x: 46, y: 17, color: 1
-  },
-  {
-    id: 3, type: 'text',
-    text: '%s',
-    variables: ['BLE_conn_string[ble_get_connected()]'],
-    preview: '已连接',
-    font: 'Dialog_plain_16',
-    x: 232, y: 17, color: 1
-  },
-  {
-    id: 4, type: 'text',
-    text: '-----%d\'C-----',
-    variables: ['EPD_read_temp()'],
-    preview: '-----25\'C-----',
-    font: 'Special_Elite_Regular_30',
-    x: 46, y: 95, color: 1
-  },
-  {
-    id: 5, type: 'text',
-    text: 'Battery %dmV  %d%%',
-    variables: ['battery_mv', 'battery_level'],
-    preview: 'Battery 3200mV  87%',
-    font: 'Dialog_plain_16',
-    x: 46, y: 120, color: 1
-  },
-  {
-    id: 6, type: 'rect',
-    x: 216, y: 60, w: 80, h: 2, filled: true
-  }
-];
-nextId = 7;
-selectedIdx = 0;
-drawGrid();
-render();
-updateProps();
+drawCanvas(); renderList(); generateCode();
 </script>
+
 </body>
 </html>
